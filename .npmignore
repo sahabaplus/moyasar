@@ -1,0 +1,37 @@
+# Source files
+src/
+tests/
+assets/
+
+# Build tools
+rollup.config.js
+tsconfig.json
+tsconfig.build.json
+.eslintrc.js
+prettier.config.js
+
+# Development files
+*.log
+*.tmp
+*.temp
+.DS_Store
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+
+# Node modules
+node_modules/
+
+# Test coverage
+coverage/
+
+# Build artifacts
+.tsbuildinfo
+
+# Misc
+bun.lock
+yarn.lock
+pnpm-lock.yaml 
