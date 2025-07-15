@@ -1,0 +1,63 @@
+{
+  "compilerOptions": {
+    // Environment setup & latest features
+    "lib": ["ESNext"],
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "allowJs": true,
+
+    // Bundler mode (for development)
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+
+    // Best practices
+    "strict": true,
+    "skipLibCheck": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
+    // Some stricter flags (disabled by default)
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false,
+
+    // Essential for path resolution
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "exactOptionalPropertyTypes": true,
+    "resolveJsonModule": true,
+
+    "paths": {
+      // Absolute
+      "@/*": ["./src/*"],
+
+      // Shared
+      "@types": ["./src/shared/types/index"],
+      "@errors": ["./src/shared/errors/index"],
+      "@constants": ["./src/shared/constants/index"],
+      "@utils": ["./src/shared/utils/index"],
+      "@shared": ["./src/shared/index"],
+      "@validation": ["./src/shared/validation/index"],
+
+      // Client
+      "@client": ["./src/client/index"],
+
+      // Features
+      "@webhook": ["./src/features/webhook/index"],
+      "@invoice": ["./src/features/invoice/index"],
+      "@payment": ["./src/features/payment/index"]
+    }
+  },
+  "include": ["src/**/*", "tests"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+}

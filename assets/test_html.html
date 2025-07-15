@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/moyasar-payment-form@2.0.14/dist/moyasar.css"
+    />
+    <script src="https://unpkg.com/moyasar-payment-form@2.0.14/dist/moyasar.umd.js"></script>
+    <script src="https://applepay.cdn-apple.com/jsapi/v1/apple-pay-sdk.js"></script>
+    <style>
+      apple-pay-button {
+        --apple-pay-button-width: 150px;
+        --apple-pay-button-height: 30px;
+        --apple-pay-button-border-radius: 3px;
+        --apple-pay-button-padding: 0px 0px;
+        --apple-pay-button-box-sizing: border-box;
+      }
+
+      .container {
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        align-items: center;
+        height: 100vh;
+      }
+    </style>
+
+    <apple-pay-button
+      buttonstyle="black"
+      onclick="onApplePayButtonClicked()"
+      type="plain"
+      locale="en"
+    ></apple-pay-button>
+  </head>
+  <body>
+    <div class="container">
+      <h1><code>{manual:true}</code></h1>
+      <div class="mysr-form"></div>
+    </div>
+
+    <script>
+      Moyasar.init({
+        element: ".mysr-form",
+        // Amount in the smallest currency unit.
+        // For example:
+        // 10 SAR = 10 * 100 Halalas
+        // 10 KWD = 10 * 1000 Fils
+        // 10 JPY = 10 JPY (Japanese Yen does not have fractions)
+        amount: 1000,
+        currency: "SAR",
+        manual: true,
+        description: "Coffee Order #1",
+        publishable_api_key: "",
+        callback_url: "https://moyasar.com/thanks",
+        methods: ["creditcard", "stcpay"],
+      });
+    </script>
+  </body>
+</html>

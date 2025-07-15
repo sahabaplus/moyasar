@@ -1,0 +1,81 @@
+{
+  "name": "@sahabaplus/moyasar",
+  "version": "0.1.0-beta.1",
+  "description": "A comprehensive TypeScript SDK for integrating with the Moyasar payment gateway",
+  "author": "SahabaPlus <dev@sahabaplus.com>",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "moyasar",
+    "payment",
+    "sdk",
+    "typescript",
+    "payments",
+    "invoice",
+    "webhook",
+    "saudi",
+    "mena",
+    "fintech"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sahabaplus/moyasar"
+  },
+  "bugs": {
+    "url": "https://github.com/sahabaplus/moyasar/issues"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean"
+  },
+  "devDependencies": {
+    "@rollup/plugin-alias": "5.1.1",
+    "@types/bun": "latest",
+    "@types/jest": "^29.5.14",
+    "@types/node": "24.0.14",
+    "@typescript-eslint/eslint-plugin": "8.37.0",
+    "@typescript-eslint/parser": "8.37.0",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.1.0",
+    "eslint": "9.31.0",
+    "eslint-config-prettier": "10.1.5",
+    "eslint-plugin-prettier": "^5.0.0",
+    "hono": "^4.8.4",
+    "jest": "^30.0.3",
+    "prettier": "^3.0.0",
+    "rollup": "^4.0.0",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.0.0",
+    "uuid": "^11.1.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "axios": "^1.9.0",
+    "tiny-typed-emitter": "^2.1.0",
+    "zod": "4.0.5"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ES2020",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "verbatimModuleSyntax": false,
+
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "removeComments": false,
+
+    // Fix path resolution for build
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"],
+      "@types": ["./shared/types/index"],
+      "@errors": ["./shared/errors/index"],
+      "@constants": ["./shared/constants/index"],
+      "@utils": ["./shared/utils/index"],
+      "@shared": ["./shared/index"],
+      "@validation": ["./shared/validation/index"],
+      "@client": ["./client/index"],
+      "@webhook": ["./features/webhook/index"],
+      "@invoice": ["./features/invoice/index"],
+      "@payment": ["./features/payment/index"]
+    },
+
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/server.ts"
+  ]
+}
