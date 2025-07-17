@@ -2,11 +2,47 @@
 export { MoyasarClient, type MoyasarClientOptions } from "./client";
 
 // Feature exports
-export * from "@webhook";
-export * from "@invoice";
-export * from "@payment";
+export {
+  WebhookService,
+  WebhookError,
+  WebhookVerificationError,
+  ALL_WEBHOOK_EVENTS,
+  WebhookValidation,
+  type AvailableEventsResponse,
+  type CreateWebhookRequest,
+  type ListWebhookAttemptsResponse,
+  type ListWebhooksResponse,
+  type UpdateWebhookRequest,
+  type Webhook,
+  type WebhookAttempt,
+  type WebhookAttemptListOptions,
+  type WebhookEvent,
+  type WebhookEventMap,
+  type WebhookEvents,
+  type WebhookHttpMethod,
+} from "@webhook";
+export {
+  InvoiceService,
+  InvoiceError,
+  BulkInvoiceLimit,
+  type BulkCreateInvoiceRequest,
+  type CreateInvoiceRequest,
+  type BulkCreateInvoicesResponse,
+  type ListInvoicesResponse,
+  type UpdateInvoiceRequest,
+  type Invoice,
+  type DetailedInvoice,
+  type InvoiceListOptions,
+  type InvoiceStatus,
+  InvoiceUtils,
+} from "@invoice";
+export {
+  PaymentService,
+  PaymentError,
+  type CreatePaymentRequest,
+} from "@payment";
 // Shared types and utilities
-export * from "@types";
+export type { Amount, Metadata, ListResponse, HasAmount } from "@types";
 
 // Default export for convenience
 export { MoyasarClient as default } from "./client";
