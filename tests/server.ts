@@ -23,15 +23,11 @@ app.get("/", c => {
   return c.html(html);
 });
 app.post("/webhook", async c => {
-  const payload = await c.req.json();
-  console.log(payload);
   try {
-    const webhook = await moyasar.webhook.processWebhook(payload, {
+    const payload = await moyasar.webhook.processWebhook(await c.req.json(), {
       secret_token: "your-secret-token",
     });
-    return c.json({
-      message: "Webhook processed successfully",
-    });
+    return c.status(200);
   } catch (error) {
     c.status(400);
     return c.json({
