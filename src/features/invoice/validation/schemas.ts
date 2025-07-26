@@ -55,21 +55,10 @@ export const invoiceSchema = z.object({
   amount: amountSchema,
   currency: z.enum(Currency),
   description: z.string(),
-  logo_url: z
-    .url("logo_url must be a valid URL")
-    .transform(val => val as `https://${string}`),
-  callback_url: z
-    .url("callback_url must be a valid URL")
-    .transform(val => val as `https://${string}`)
-    .optional(),
-  success_url: z
-    .url("success_url must be a valid URL")
-    .transform(val => val as `https://${string}`)
-    .optional(),
-  back_url: z
-    .url("back_url must be a valid URL")
-    .transform(val => val as `https://${string}`)
-    .optional(),
+  logo_url: z.url("logo_url must be a valid URL"),
+  callback_url: z.url("callback_url must be a valid URL").optional(),
+  success_url: z.url("success_url must be a valid URL").optional(),
+  back_url: z.url("back_url must be a valid URL").optional(),
   expired_at: z.coerce.date().optional(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date(),
@@ -77,7 +66,5 @@ export const invoiceSchema = z.object({
   amount_format: z
     .string()
     .transform(val => val as `${number} ${CurrencyType}`),
-  url: z
-    .url("url must be a valid URL")
-    .transform(val => val as `https://${string}`),
+  url: z.url("url must be a valid URL"),
 } satisfies AllKeys<Invoice>);

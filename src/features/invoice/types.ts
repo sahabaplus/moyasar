@@ -23,14 +23,14 @@ export interface Invoice<T extends object = Metadata>
   /**
    * @description URL to the entity logo configured through Moyasar Dashboard.
    */
-  logo_url?: `https://${string}` | undefined;
+  logo_url?: string | undefined;
   amount_format: `${number} ${CurrencyType}`;
-  url: `https://${string}`;
+  url: string;
   /**
    * @description An endpoint on your server that will get a POST request with the invoice object when the invoice is paid. Unlike Payment, this is not used to redirect the user, this is only used to send a notification.
    * @see https://docs.moyasar.com/api/invoices/01-create-invoice#request
    */
-  callback_url?: `https://${string}` | undefined;
+  callback_url?: string | undefined;
   /**
    * @description Specifies when the invoice will get expired.
    * @see https://docs.moyasar.com/api/invoices/01-create-invoice#request
@@ -42,12 +42,12 @@ export interface Invoice<T extends object = Metadata>
    * @description An endpoint on your site used for redirect when the user clicks on the back button.
    * @see https://docs.moyasar.com/api/invoices/01-create-invoice#request
    */
-  back_url?: `https://${string}` | undefined;
+  back_url?: string | undefined;
   /**
    * @description An endpoint where the payer will be redirected to when the invoice is paid.
    * @see https://docs.moyasar.com/api/invoices/01-create-invoice#request
    */
-  success_url?: `https://${string}` | undefined;
+  success_url?: string | undefined;
 }
 
 export interface DetailedInvoice<T extends object = Metadata>
@@ -64,17 +64,17 @@ export interface CreateInvoiceRequest<T extends object = Metadata>
    * @description An endpoint on your server that will get a POST request with the invoice object when the invoice is paid. Unlike Payment, this is not used to redirect the user, this is only used to send a notification.
    * @see https://docs.moyasar.com/api/invoices/01-create-invoice#request
    */
-  callback_url?: `https://${string}` | undefined;
+  callback_url?: string | undefined;
   /**
    * @description An endpoint where the payer will be redirected to when the invoice is paid.
    * @see https://docs.moyasar.com/api/invoices/01-create-invoice#request
    */
-  success_url?: `https://${string}` | undefined;
+  success_url?: string | undefined;
   /**
    * @description An endpoint on your site used for redirect when the user clicks on the back button.
    * @see https://docs.moyasar.com/api/invoices/01-create-invoice#request
    */
-  back_url?: `https://${string}` | undefined;
+  back_url?: string | undefined;
   /**
    * @description Specifies when the invoice will get expired.
    * @note User will be prevented from paying the invoice once expired.
