@@ -60,6 +60,12 @@ export {
   type CreateGooglePayPaymentSource,
   type CreatePaymentSource,
   type PaymentSourceUnion,
+  type SaveCard,
+  type Manual,
+  type CreateTokenPaymentSource,
+  type CreateSamsungPayPaymentSource,
+  type CreateStcPayPaymentSource,
+  type CreatePaymentSourceBase,
 } from "@payment";
 // Shared types and utilities
 export type { Amount, Metadata, ListResponse, HasAmount } from "@types";
