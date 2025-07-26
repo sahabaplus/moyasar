@@ -43,7 +43,23 @@ export {
 export {
   PaymentService,
   PaymentError,
+  PaymentStatus,
+  CardScheme,
+  CardType,
+  PaymentSource,
+  PaymentLimits,
+  PaymentValidation,
+  PaymentUtils,
+  type Payment,
+  type PaymentListOptions,
+  type BasePaymentSource,
   type CreatePaymentRequest,
+  type CapturePaymentRequest,
+  type CreateApplePayPaymentSource,
+  type CreateCreditCardPaymentSource,
+  type CreateGooglePayPaymentSource,
+  type CreatePaymentSource,
+  type PaymentSourceUnion,
 } from "@payment";
 // Shared types and utilities
 export type { Amount, Metadata, ListResponse, HasAmount } from "@types";
