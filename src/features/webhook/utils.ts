@@ -1,6 +1,6 @@
 import { WebhookValidation } from "./validation";
-import { WebhookError } from "./errors";
-import type { WebhookPayload, WebhookVerificationOptions } from "./types";
+import { WebhookError, WebhookValidationError } from "./errors";
+import type { WebhookPayload } from "./types";
 
 export class WebhookUtils {
   /**
@@ -8,7 +8,7 @@ export class WebhookUtils {
    */
   static async verifyWebhookSignature(
     payload: WebhookPayload,
-    options: WebhookVerificationOptions
+    options: { secret_token: string }
   ): Promise<boolean> {
     const { secret_token } = options;
 
@@ -28,16 +28,21 @@ export class WebhookUtils {
       const parsed = JSON.parse(payloadString);
 
       // Basic validation
-      if (!parsed.id || !parsed.type || !parsed.data) {
-        throw new WebhookError("Invalid webhook payload structure", {});
-      }
+      if (!parsed.id || !parsed.type || !parsed.data)
+        throw new WebhookValidationError({
+          message: "Invalid webhook payload structure",
+          unexpected_payload: parsed,
+        });
 
       return parsed as WebhookPayload;
     } catch (error) {
       if (error instanceof WebhookError) {
         throw error;
       }
-      throw new WebhookError(`Failed to parse webhook payload: ${error}`, {});
+      throw new WebhookValidationError({
+        message: `Failed to parse webhook payload: ${error}`,
+        unexpected_payload: {},
+      });
     }
   }
 

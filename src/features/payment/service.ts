@@ -1,4 +1,4 @@
-import type { ApiClient, Metadata } from "@types";
+import type { ApiClient, Metadata, MoyasarClientTypes } from "@types";
 import { API_ENDPOINTS } from "@constants";
 import type {
   ListPaymentsResponse,
@@ -14,19 +14,29 @@ import { PaymentUtils } from "./utils";
 import { PaymentError } from "./errors";
 import { MoyasarError } from "../../shared/errors";
 
-export class PaymentService {
-  private apiClient: ApiClient;
+type PaymentServiceParams<T extends MoyasarClientTypes> = {
+  apiClient: ApiClient<T>;
+};
 
-  constructor(p: { apiClient: ApiClient }) {
+export class PaymentService<T extends MoyasarClientTypes> {
+  private apiClient: ApiClient<T>;
+  private readonly paymentUtils: PaymentUtils<T["metadata"]>;
+
+  constructor(p: PaymentServiceParams<T>) {
     this.apiClient = p.apiClient;
+    this.paymentUtils = new PaymentUtils({
+      metadataValidator: p.apiClient.metadataValidator,
+    });
   }
 
   /**
    * Create a new payment
    */
-  async create(params: CreatePaymentRequest): Promise<Payment> {
+  async create(
+    params: CreatePaymentRequest<T["metadata"]>
+  ): Promise<Payment<T["metadata"]>> {
     // Validate input
-    const validation = PaymentUtils.validateCreatePaymentRequest(params);
+    const validation = this.paymentUtils.validateCreatePaymentRequest(params);
     if (!validation.success) {
       throw new PaymentError(
         `Validation failed: ${validation.errors.join(", ")}`,
@@ -41,7 +51,7 @@ export class PaymentService {
         data: params,
       });
 
-      return PaymentUtils.parsePayment(response);
+      return this.paymentUtils.parsePayment(response);
     } catch (error) {
       const paymentError = this.handleError(error, `Failed to create payment`);
       throw paymentError;
@@ -51,7 +61,9 @@ export class PaymentService {
   /**
    * List payments with optional filtering
    */
-  async list(options: PaymentListOptions = {}): Promise<ListPaymentsResponse> {
+  async list(
+    options: PaymentListOptions = {}
+  ): Promise<ListPaymentsResponse<T["metadata"]>> {
     try {
       // Convert metadata filters to proper query format
       const queryParams = this.parseBody(options);
@@ -61,7 +73,7 @@ export class PaymentService {
         params: queryParams,
       });
 
-      const parsed = PaymentUtils.parseListPaymentsResponse(response);
+      const parsed = this.paymentUtils.parseListPaymentsResponse(response);
       return parsed;
     } catch (error) {
       const paymentError = this.handleError(error, "Failed to list payments");
@@ -72,7 +84,7 @@ export class PaymentService {
   /**
    * Retrieve a specific payment
    */
-  async retrieve(paymentId: string): Promise<Payment> {
+  async retrieve(paymentId: string): Promise<Payment<T["metadata"]>> {
     if (!paymentId) throw new PaymentError("Payment ID is required", 400);
 
     try {
@@ -82,7 +94,7 @@ export class PaymentService {
       });
 
       // Parse and validate the response
-      const payment = PaymentUtils.parsePayment(response);
+      const payment = this.paymentUtils.parsePayment(response);
       return payment;
     } catch (error) {
       const paymentError = this.handleError(
@@ -101,14 +113,14 @@ export class PaymentService {
     update,
   }: {
     paymentId: string;
-    update: UpdatePaymentRequest;
-  }): Promise<Payment> {
+    update: UpdatePaymentRequest<T["metadata"]>;
+  }): Promise<Payment<T["metadata"]>> {
     if (!paymentId) {
       throw new PaymentError("Payment ID is required", 400);
     }
 
     // Validate input
-    const validation = PaymentUtils.validateUpdatePaymentRequest(update);
+    const validation = this.paymentUtils.validateUpdatePaymentRequest(update);
     if (!validation.success) {
       throw new PaymentError(
         `Validation failed: ${validation.errors.join(", ")}`,
@@ -117,7 +129,7 @@ export class PaymentService {
     }
 
     try {
-      const response = await this.apiClient.request<Payment>({
+      const response = await this.apiClient.request<Payment<T["metadata"]>>({
         method: "PUT",
         url: `${API_ENDPOINTS.payments}/${paymentId}`,
         data: update,
@@ -142,14 +154,14 @@ export class PaymentService {
   }: {
     paymentId: string;
     refund: RefundPaymentRequest;
-  }): Promise<Payment> {
+  }): Promise<Payment<T["metadata"]>> {
     if (!paymentId) {
       throw new PaymentError("Payment ID is required", 400);
     }
 
     refund.amount;
     // Validate input
-    const validation = PaymentUtils.validateRefundRequest(refund);
+    const validation = this.paymentUtils.validateRefundRequest(refund);
     if (!validation.success) {
       throw new PaymentError(
         `Validation failed: ${validation.errors.join(", ")}`,
@@ -165,7 +177,7 @@ export class PaymentService {
       });
 
       // Parse and validate the response
-      const payment = PaymentUtils.parsePayment(response);
+      const payment = this.paymentUtils.parsePayment(response);
       return payment;
     } catch (error) {
       const paymentError = this.handleError(
@@ -185,11 +197,11 @@ export class PaymentService {
   }: {
     paymentId: string;
     capture?: CapturePaymentRequest;
-  }): Promise<Payment> {
+  }): Promise<Payment<T["metadata"]>> {
     if (!paymentId) throw new PaymentError("Payment ID is required", 400);
 
     // Validate input
-    const validation = PaymentUtils.validateCaptureRequest(capture);
+    const validation = this.paymentUtils.validateCaptureRequest(capture);
     if (!validation.success) {
       throw new PaymentError(`Validation failed: ${validation.errors}`, 400, {
         errors: validation.errors,
@@ -204,7 +216,7 @@ export class PaymentService {
       });
 
       // Parse and validate the response
-      const payment = PaymentUtils.parsePayment(response);
+      const payment = this.paymentUtils.parsePayment(response);
       return payment;
     } catch (error) {
       const paymentError = this.handleError(
@@ -218,7 +230,7 @@ export class PaymentService {
   /**
    * Void an authorized payment
    */
-  async void(paymentId: string): Promise<Payment> {
+  async void(paymentId: string): Promise<Payment<T["metadata"]>> {
     if (!paymentId) throw new PaymentError("Payment ID is required", 400);
 
     try {
@@ -228,7 +240,7 @@ export class PaymentService {
       });
 
       // Parse and validate the response
-      const payment = PaymentUtils.parsePayment(response);
+      const payment = this.paymentUtils.parsePayment(response);
       return payment;
     } catch (error) {
       const paymentError = this.handleError(
@@ -248,8 +260,8 @@ export class PaymentService {
   }: {
     metadata: Metadata;
     options: Omit<PaymentListOptions, "metadata">;
-  }): Promise<ListPaymentsResponse> {
-    const metadataQuery = PaymentUtils.buildMetadataQuery(metadata);
+  }): Promise<ListPaymentsResponse<T["metadata"]>> {
+    const metadataQuery = this.paymentUtils.buildMetadataQuery(metadata);
 
     return this.list({
       ...options,
@@ -263,7 +275,7 @@ export class PaymentService {
   async getByStatus(
     status: PaymentStatus,
     options: Omit<PaymentListOptions, "status"> = {}
-  ): Promise<ListPaymentsResponse> {
+  ): Promise<ListPaymentsResponse<T["metadata"]>> {
     return this.list({
       ...options,
       status,
@@ -275,7 +287,7 @@ export class PaymentService {
    */
   async getPaid(
     options: Omit<PaymentListOptions, "status"> = {}
-  ): Promise<ListPaymentsResponse> {
+  ): Promise<ListPaymentsResponse<T["metadata"]>> {
     return this.getByStatus(PaymentStatus.PAID, options);
   }
 
@@ -284,7 +296,7 @@ export class PaymentService {
    */
   async getFailed(
     options: Omit<PaymentListOptions, "status"> = {}
-  ): Promise<ListPaymentsResponse> {
+  ): Promise<ListPaymentsResponse<T["metadata"]>> {
     return this.getByStatus(PaymentStatus.FAILED, options);
   }
 
@@ -293,7 +305,7 @@ export class PaymentService {
    */
   async getAuthorized(
     options: Omit<PaymentListOptions, "status"> = {}
-  ): Promise<ListPaymentsResponse> {
+  ): Promise<ListPaymentsResponse<T["metadata"]>> {
     return this.getByStatus(PaymentStatus.AUTHORIZED, options);
   }
 
@@ -302,7 +314,7 @@ export class PaymentService {
    */
   async getRefunded(
     options: Omit<PaymentListOptions, "status"> = {}
-  ): Promise<ListPaymentsResponse> {
+  ): Promise<ListPaymentsResponse<T["metadata"]>> {
     return this.getByStatus(PaymentStatus.REFUNDED, options);
   }
 
@@ -315,7 +327,7 @@ export class PaymentService {
   }: {
     last4: string;
     options: Omit<PaymentListOptions, "last_4">;
-  }): Promise<ListPaymentsResponse> {
+  }): Promise<ListPaymentsResponse<T["metadata"]>> {
     if (!/^\d{4}$/.test(last4)) {
       throw new PaymentError("Last 4 digits must be exactly 4 digits", 400);
     }
@@ -335,7 +347,7 @@ export class PaymentService {
   }: {
     rrn: string;
     options: Omit<PaymentListOptions, "rrn">;
-  }): Promise<ListPaymentsResponse> {
+  }): Promise<ListPaymentsResponse<T["metadata"]>> {
     if (!/^\d{12}$/.test(rrn)) {
       throw new PaymentError("RRN must be exactly 12 digits", 400);
     }
@@ -359,11 +371,11 @@ export class PaymentService {
     const payment = await this.retrieve(paymentId);
 
     return {
-      canRefund: PaymentUtils.canRefundPayment(payment),
-      canCapture: PaymentUtils.canCapturePayment(payment),
-      canVoid: PaymentUtils.canVoidPayment(payment),
-      maxRefundAmount: PaymentUtils.getMaxRefundAmount(payment),
-      maxCaptureAmount: PaymentUtils.getMaxCaptureAmount(payment),
+      canRefund: this.paymentUtils.canRefundPayment(payment),
+      canCapture: this.paymentUtils.canCapturePayment(payment),
+      canVoid: this.paymentUtils.canVoidPayment(payment),
+      maxRefundAmount: this.paymentUtils.getMaxRefundAmount(payment),
+      maxCaptureAmount: this.paymentUtils.getMaxCaptureAmount(payment),
     };
   }
 

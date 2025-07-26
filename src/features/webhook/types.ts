@@ -1,18 +1,18 @@
-import type { BaseListOptions, ListResponse } from "@types";
-import { WebhookEvents, WebhookHttpMethods } from "./enums";
+import type { BaseListOptions, ListResponse, Metadata } from "@types";
+import { WebhookEvent, WebhookHttpMethod } from "./enums";
 
-export type WebhookEvent = (typeof WebhookEvents)[keyof typeof WebhookEvents];
-export type WebhookHttpMethod =
-  (typeof WebhookHttpMethods)[keyof typeof WebhookHttpMethods];
-
-export interface WebhookPayload {
+export interface WebhookPayload<T extends object = Metadata> {
   id: string;
   type: WebhookEvent;
   created_at: string;
   secret_token: string;
   account_name: string;
   live: boolean;
-  data: any; // Payment object - this would be more specific in a full implementation
+  /**
+   * The Payment payload associated with the event.
+   * @see https://docs.moyasar.com/api/other/webhooks/webhook-reference#the-webhook-object
+   */
+  data: T;
 }
 
 export interface Webhook {
@@ -77,7 +77,7 @@ export interface WebhookVerificationOptions {
   secret_token: string;
 }
 
-export type WebhookEventMap = {
+export type WebhookEventMap<T extends object = Metadata> = {
   // Payment events
-  [K in WebhookEvent]: (payload: WebhookPayload) => void | Promise<void>;
+  [K in WebhookEvent]: (payload: WebhookPayload<T>) => void | Promise<void>;
 };

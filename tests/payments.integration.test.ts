@@ -1,22 +1,25 @@
 import { MoyasarClient } from "@/index";
-import {
-  PaymentSource,
-  type CreatePaymentRequest,
-  PaymentError,
-} from "@payment";
+import { PaymentSource, PaymentError } from "@payment";
 import { MoyasarError } from "@errors";
 import dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
+import z from "zod";
 
 dotenv.config({ path: ".env" });
 
 describe("Payment Testing", async () => {
   const client = new MoyasarClient({
     apiKey: process.env.MOYASAR_API_KEY!,
+    metadataValidator: z.object({
+      app: z.enum(["ios", "android"]),
+      user_id: z.string(),
+      test_payment: z.string(),
+      new_prop: z.string().optional(),
+    }),
   });
 
   describe("Create/Retrieve/Update/Refund/Capture/Void a payment", async () => {
-    const createPaymentReq: CreatePaymentRequest = {
+    const createPaymentReq: Parameters<typeof client.payment.create>[0] = {
       amount: 5000,
       currency: "SAR",
       description: "Test payment for integration testing",
@@ -31,8 +34,11 @@ describe("Payment Testing", async () => {
         statement_descriptor: "Test Payment",
       },
       metadata: {
+        // @ts-expect-error - This should trigger a type error since this property isn't defined in the metadata schema.
+        non_existing_prop: "test",
         user_id: "1234567890",
         test_payment: "true",
+        app: "ios",
       },
     };
 
@@ -159,7 +165,9 @@ describe("Payment Testing", async () => {
   });
 
   describe("Payment capabilities", async () => {
-    const createCapabilitiesPaymentReq: CreatePaymentRequest = {
+    const createCapabilitiesPaymentReq: Parameters<
+      typeof client.payment.create
+    >[0] = {
       amount: 1000,
       currency: "SAR",
       description: "Capabilities test payment",
@@ -173,7 +181,9 @@ describe("Payment Testing", async () => {
         cvc: "123",
       },
       metadata: {
-        test_type: "capabilities",
+        user_id: "1234567890",
+        test_payment: "true",
+        app: "ios",
       },
     };
 

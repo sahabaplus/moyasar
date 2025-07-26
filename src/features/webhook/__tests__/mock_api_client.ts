@@ -1,6 +1,9 @@
-import { type ApiClient } from "@types";
+import type { ApiClient, MoyasarClientTypes, MetadataValidator } from "@types";
 
-export class MockApiClient implements ApiClient {
+export class MockApiClient<T extends MoyasarClientTypes>
+  implements ApiClient<T>
+{
+  public metadataValidator: MetadataValidator<T["metadata"]>;
   public mockResponses: Map<string, any> = new Map();
   public requestHistory: Array<{
     method: string;
@@ -8,6 +11,16 @@ export class MockApiClient implements ApiClient {
     data?: any;
     params?: any;
   }> = [];
+
+  constructor({
+    dataParser,
+  }: {
+    dataParser?: MetadataValidator<T["metadata"]>;
+  }) {
+    this.metadataValidator = dataParser ?? {
+      parse: payload => payload,
+    };
+  }
 
   setMockResponse(key: string, response: any) {
     this.mockResponses.set(key, response);

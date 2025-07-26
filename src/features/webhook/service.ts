@@ -1,9 +1,9 @@
-import type { ApiClient } from "@types";
+import type { ApiClient, Metadata, MoyasarClientTypes } from "@types";
 import { API_ENDPOINTS } from "@constants";
 import { WebhookUtils } from "./utils";
-import { WebhookError } from "./errors";
+import { WebhookError, WebhookValidationError } from "./errors";
 import { WebhookValidation } from "./validation";
-import { WebhookEvents } from "./enums";
+import { WebhookEvent } from "./enums";
 import type {
   Webhook,
   WebhookPayload,
@@ -16,15 +16,20 @@ import type {
   WebhookListOptions,
   WebhookAttemptListOptions,
   WebhookVerificationOptions,
-  WebhookEvent,
   WebhookEventMap,
 } from "./types";
 import { TypedEmitter } from "tiny-typed-emitter";
 
-export class WebhookService extends TypedEmitter<WebhookEventMap> {
-  private apiClient: ApiClient;
+type WebhookServiceParams<T extends MoyasarClientTypes> = {
+  apiClient: ApiClient<T>;
+};
 
-  constructor(params: { apiClient: ApiClient }) {
+export class WebhookService<T extends MoyasarClientTypes> extends TypedEmitter<
+  WebhookEventMap<T["metadata"]>
+> {
+  private readonly apiClient: ApiClient<T>;
+  private readonly events = Object.values(WebhookEvent) as WebhookEvent[];
+  constructor(params: WebhookServiceParams<T>) {
     super();
     this.apiClient = params.apiClient;
   }
@@ -214,9 +219,9 @@ export class WebhookService extends TypedEmitter<WebhookEventMap> {
    * This method should be called from your webhook endpoint
    */
   async processWebhook(
-    rawPayload: string | Buffer | WebhookPayload,
+    rawPayload: string | Buffer | WebhookPayload<Metadata>,
     options: WebhookVerificationOptions
-  ): Promise<WebhookPayload> {
+  ): Promise<WebhookPayload<T["metadata"]>> {
     try {
       // Parse payload if it's raw
       const payload =
@@ -226,25 +231,42 @@ export class WebhookService extends TypedEmitter<WebhookEventMap> {
 
       // Validate payload structure
       const validationErrors = WebhookUtils.validateWebhookPayload(payload);
-      if (validationErrors.length > 0)
-        throw new WebhookError(
-          `Invalid webhook payload: ${validationErrors.join(", ")}`
-        );
+      if (validationErrors.length > 0) {
+        throw new WebhookValidationError({
+          message: `Invalid webhook payload: ${validationErrors.join(", ")}`,
+          unexpected_payload: payload,
+        });
+      }
 
       // Verify signature if provided
 
-      const isValid = await WebhookUtils.verifyWebhookSignature(
+      const isValidSignature = await WebhookUtils.verifyWebhookSignature(
         payload,
         options
       );
-      if (!isValid) {
+      if (!isValidSignature)
         throw new WebhookError("Webhook signature verification failed");
+
+      try {
+        const parsedPayloadData = this.apiClient.metadataValidator.parse(
+          payload.data
+        );
+        const parsedPayload = {
+          ...payload,
+          data: parsedPayloadData,
+        };
+
+        this.emit(payload.type, parsedPayload);
+        return parsedPayload;
+      } catch (error) {
+        throw new WebhookValidationError({
+          message:
+            error instanceof Error && "message" in error
+              ? error.message
+              : "Unknown error",
+          unexpected_payload: payload,
+        });
       }
-
-      // Emit the specific event
-      this.emit(payload.type, payload);
-
-      return payload;
     } catch (error) {
       const webhookError =
         error instanceof WebhookError
@@ -260,7 +282,7 @@ export class WebhookService extends TypedEmitter<WebhookEventMap> {
    */
   onPaymentEvent(
     event: WebhookEvent,
-    listener: (payload: WebhookPayload) => void | Promise<void>
+    listener: (payload: WebhookPayload<T["metadata"]>) => void | Promise<void>
   ): this {
     return this.on(event, listener);
   }
@@ -269,11 +291,9 @@ export class WebhookService extends TypedEmitter<WebhookEventMap> {
    * Utility method to listen to all payment events
    */
   onAnyPaymentEvent(
-    listener: (payload: WebhookPayload) => void | Promise<void>
+    listener: (payload: WebhookPayload<T["metadata"]>) => void | Promise<void>
   ): this {
-    const events = Object.values(WebhookEvents) as WebhookEvent[];
-
-    events.forEach(event => {
+    this.events.forEach(event => {
       this.on(event, listener);
     });
 

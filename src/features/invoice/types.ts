@@ -1,6 +1,7 @@
 import type {
   BaseListOptions,
   CurrencyType,
+  HasMetadata,
   ListResponse,
   Metadata,
 } from "@types";
@@ -12,7 +13,9 @@ import type { HasAmount } from "@types";
  * # Invoice
  * @see https://docs.moyasar.com/category/invoices-api
  */
-export interface Invoice extends HasAmount {
+export interface Invoice<T extends object = Metadata>
+  extends HasAmount,
+    HasMetadata<T> {
   id: string;
   status: InvoiceStatus;
   currency: CurrencyType;
@@ -45,14 +48,16 @@ export interface Invoice extends HasAmount {
    * @see https://docs.moyasar.com/api/invoices/01-create-invoice#request
    */
   success_url?: `https://${string}` | undefined;
-  metadata?: Metadata | undefined;
 }
 
-export interface DetailedInvoice extends Invoice {
-  payments: Payment[];
+export interface DetailedInvoice<T extends object = Metadata>
+  extends Invoice<T> {
+  payments: Payment<T>[];
 }
 
-export interface CreateInvoiceRequest extends HasAmount {
+export interface CreateInvoiceRequest<T extends object = Metadata>
+  extends HasAmount,
+    HasMetadata<T> {
   currency: CurrencyType;
   description: string;
   /**
@@ -78,33 +83,33 @@ export interface CreateInvoiceRequest extends HasAmount {
    * @see https://docs.moyasar.com/api/invoices/01-create-invoice#request
    */
   expired_at?: Date | undefined;
-  metadata?: Metadata | undefined;
 }
 
-export interface UpdateInvoiceRequest {
-  metadata?: Metadata | undefined;
-}
+export interface UpdateInvoiceRequest<T extends object = Metadata>
+  extends HasMetadata<Partial<T>> {}
 
-export interface BulkCreateInvoiceRequest {
+export interface BulkCreateInvoiceRequest<T extends object = Metadata> {
   /**
    * @description Max length is `BulkInvoiceLimit.MAX_BULK_INVOICES`
    * @see https://docs.moyasar.com/api/invoices/01-create-invoice#request
    */
-  invoices: CreateInvoiceRequest[];
+  invoices: CreateInvoiceRequest<T>[];
 }
 
-export interface InvoiceListOptions extends BaseListOptions {
+export interface InvoiceListOptions<T extends object = Metadata>
+  extends BaseListOptions,
+    HasMetadata<T> {
   id?: string | undefined;
   status?: InvoiceStatus | undefined;
   "created[gt]"?: Date | undefined;
   "created[lt]"?: Date | undefined;
-  metadata?: Metadata | undefined;
 }
 
-export interface ListInvoicesResponse extends ListResponse<Invoice> {
-  invoices: Invoice[];
+export interface ListInvoicesResponse<T extends object = Metadata>
+  extends ListResponse<Invoice<T>> {
+  invoices: Invoice<T>[];
 }
 
-export interface BulkCreateInvoicesResponse {
-  invoices: Invoice[];
+export interface BulkCreateInvoicesResponse<T extends object = Metadata> {
+  invoices: Invoice<T>[];
 }

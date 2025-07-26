@@ -16,26 +16,41 @@ import {
   PaymentSchema,
   listPaymentResponseSchema,
 } from "./validation/schemas";
-import type { ValidationResult } from "@types";
+import type { MetadataValidator, ValidationResult } from "@types";
 
-export class PaymentUtils {
+type PaymentUtilsParams<T extends object> = {
+  metadataValidator: MetadataValidator<T>;
+};
+export class PaymentUtils<T extends object> {
+  private readonly metadataValidator: MetadataValidator<T>;
+
+  constructor(p: PaymentUtilsParams<T>) {
+    this.metadataValidator = p.metadataValidator;
+  }
+
   /**
    * Validate payment creation request using Zod
    */
-  static validateCreatePaymentRequest(
-    request: CreatePaymentRequest
-  ): ValidationResult<CreatePaymentRequest> {
+  validateCreatePaymentRequest(
+    request: CreatePaymentRequest<T>
+  ): ValidationResult<CreatePaymentRequest<T>> {
     const result = CreatePaymentSchema.safeParse(request);
+    const metadata = result.data?.metadata
+      ? this.metadataValidator.parse(result.data?.metadata)
+      : undefined;
 
     if (result.success) {
       return {
         success: true,
-        data: result.data as CreatePaymentRequest,
+        data: {
+          ...result.data,
+          metadata,
+        },
         errors: [],
       };
     }
 
-    const errors = result.error.issues.map((err) => {
+    const errors = result.error.issues.map(err => {
       const path = err.path.length > 0 ? `${err.path.join(".")}: ` : "";
       return `${path}${err.message}`;
     });
@@ -49,20 +64,26 @@ export class PaymentUtils {
   /**
    * Validate payment update request using Zod
    */
-  static validateUpdatePaymentRequest(
-    request: UpdatePaymentRequest
-  ): ValidationResult<UpdatePaymentRequest> {
+  validateUpdatePaymentRequest(
+    request: UpdatePaymentRequest<T>
+  ): ValidationResult<UpdatePaymentRequest<T>> {
     const result = UpdatePaymentSchema.safeParse(request);
+    const metadata = result.data?.metadata
+      ? this.metadataValidator.parse(result.data?.metadata)
+      : undefined;
 
     if (result.success) {
       return {
         success: true,
-        data: result.data as UpdatePaymentRequest,
+        data: {
+          ...result.data,
+          metadata,
+        },
         errors: [],
       };
     }
 
-    const errors = result.error.issues.map((err) => {
+    const errors = result.error.issues.map(err => {
       const path = err.path.length > 0 ? `${err.path.join(".")}: ` : "";
       return `${path}${err.message}`;
     });
@@ -76,7 +97,7 @@ export class PaymentUtils {
   /**
    * Validate refund request using Zod
    */
-  static validateRefundRequest(
+  validateRefundRequest(
     request: RefundPaymentRequest
   ): ValidationResult<RefundPaymentRequest> {
     const result = RefundPaymentSchema.safeParse(request);
@@ -89,7 +110,7 @@ export class PaymentUtils {
       };
     }
 
-    const errors = result.error.issues.map((err) => {
+    const errors = result.error.issues.map(err => {
       const path = err.path.length > 0 ? `${err.path.join(".")}: ` : "";
       return `${path}${err.message}`;
     });
@@ -103,7 +124,7 @@ export class PaymentUtils {
   /**
    * Validate capture request using Zod
    */
-  static validateCaptureRequest(
+  validateCaptureRequest(
     request?: CapturePaymentRequest
   ): ValidationResult<CapturePaymentRequest> {
     const result = CapturePaymentSchema.safeParse(request);
@@ -116,7 +137,7 @@ export class PaymentUtils {
       };
     }
 
-    const errors = result.error.issues.map((err) => {
+    const errors = result.error.issues.map(err => {
       const path = err.path.length > 0 ? `${err.path.join(".")}: ` : "";
       return `${path}${err.message}`;
     });
@@ -130,7 +151,7 @@ export class PaymentUtils {
   /**
    * Format amount for display
    */
-  static formatAmount(
+  formatAmount(
     amount: Amount,
     currency: CurrencyType
   ): `${number} ${CurrencyType}` {
@@ -153,7 +174,7 @@ export class PaymentUtils {
   /**
    * Parse amount from display format to smallest unit
    */
-  static parseAmount(formattedAmount: string, currency: CurrencyType): number {
+  parseAmount(formattedAmount: string, currency: CurrencyType): number {
     const divisors: Record<string, number> = {
       KWD: 1000,
       JPY: 1,
@@ -171,7 +192,7 @@ export class PaymentUtils {
   /**
    * Check if payment is in a final state
    */
-  static isPaymentFinal(status: PaymentStatus): boolean {
+  isPaymentFinal(status: PaymentStatus): boolean {
     const finalStatuses: PaymentStatus[] = [
       PaymentStatus.PAID,
       PaymentStatus.FAILED,
@@ -186,7 +207,7 @@ export class PaymentUtils {
   /**
    * Check if payment can be refunded
    */
-  static canRefundPayment(payment: Payment): boolean {
+  canRefundPayment(payment: Payment<T>): boolean {
     const refundableStatuses: PaymentStatus[] = [
       PaymentStatus.PAID,
       PaymentStatus.CAPTURED,
@@ -205,28 +226,28 @@ export class PaymentUtils {
   /**
    * Check if payment can be captured
    */
-  static canCapturePayment(payment: Payment): boolean {
+  canCapturePayment(payment: Payment<T>): boolean {
     return payment.status === PaymentStatus.AUTHORIZED;
   }
 
   /**
    * Check if payment can be voided
    */
-  static canVoidPayment(payment: Payment): boolean {
+  canVoidPayment(payment: Payment<T>): boolean {
     return payment.status === PaymentStatus.AUTHORIZED;
   }
 
   /**
    * Get maximum refund amount for a payment
    */
-  static getMaxRefundAmount(payment: Payment): number {
+  getMaxRefundAmount(payment: Payment<T>): number {
     return Math.max(0, payment.captured - payment.refunded);
   }
 
   /**
    * Get maximum capture amount for an authorized payment
    */
-  static getMaxCaptureAmount(payment: Payment): number {
+  getMaxCaptureAmount(payment: Payment<T>): number {
     if (payment.status !== PaymentStatus.AUTHORIZED) {
       return 0;
     }
@@ -236,7 +257,7 @@ export class PaymentUtils {
   /**
    * Check if card scheme matches expected CVV length
    */
-  static validateCvcLength(cvc: string, scheme?: CardScheme): boolean {
+  validateCvcLength(cvc: string, scheme?: CardScheme): boolean {
     if (scheme === CardScheme.AMEX) {
       return cvc.length === PaymentValidation.AMEX_CVV_LENGTH;
     }
@@ -246,7 +267,7 @@ export class PaymentUtils {
   /**
    * Mask card number for display (show first 6 and last 4 digits)
    */
-  static maskCardNumber(cardNumber: string): string {
+  maskCardNumber(cardNumber: string): string {
     if (cardNumber.length < 10) {
       return cardNumber;
     }
@@ -259,16 +280,14 @@ export class PaymentUtils {
   /**
    * Get last 4 digits of card number
    */
-  static getCardLast4(cardNumber: string): string {
+  getCardLast4(cardNumber: string): string {
     return cardNumber.substring(cardNumber.length - 4);
   }
 
   /**
    * Build metadata query parameters for filtering
    */
-  static buildMetadataQuery(
-    metadata: Record<string, string>
-  ): Record<string, string> {
+  buildMetadataQuery(metadata: Record<string, string>): Record<string, string> {
     const query: Record<string, string> = {};
 
     Object.entries(metadata).forEach(([key, value]) => {
@@ -281,7 +300,7 @@ export class PaymentUtils {
   /**
    * Sanitize payment description
    */
-  static sanitizeDescription(description: string): string {
+  sanitizeDescription(description: string): string {
     return description
       .trim()
       .substring(0, PaymentValidation.DESCRIPTION_MAX_LENGTH);
@@ -290,7 +309,7 @@ export class PaymentUtils {
   /**
    * Generate idempotency key for payment
    */
-  static generateIdempotencyKey(prefix: string = "pay"): string {
+  generateIdempotencyKey(prefix: string = "pay"): string {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substring(2, 8);
     return `${prefix}_${timestamp}_${random}`;
@@ -299,7 +318,7 @@ export class PaymentUtils {
   /**
    * Check if payment method requires 3DS by default
    */
-  static requires3DS(source: CreatePaymentRequest["source"]): boolean {
+  requires3DS(source: CreatePaymentRequest["source"]): boolean {
     // Credit cards typically require 3DS unless explicitly bypassed
     if (source.type === PaymentSource.CREDITCARD)
       return source["3ds"] !== false; // Undefined maps to true by default
@@ -311,30 +330,43 @@ export class PaymentUtils {
   /**
    * Parse and validate a Payment response, ensuring all data types are correct
    */
-  static parsePayment(payment: unknown): Payment {
-    return PaymentSchema.parse(payment);
+  parsePayment(payment: unknown): Payment<T> {
+    const parsed = PaymentSchema.parse(payment);
+    const metadata = parsed.metadata
+      ? this.metadataValidator.parse(parsed.metadata)
+      : undefined;
+
+    return {
+      ...parsed,
+      metadata,
+    };
   }
 
-  static parseListPaymentsResponse(response: unknown): ListPaymentsResponse {
-    return listPaymentResponseSchema.parse(response);
+  parseListPaymentsResponse(response: unknown): ListPaymentsResponse<T> {
+    const parsed = listPaymentResponseSchema.parse(response);
+    const payments = parsed.payments.map(payment => this.parsePayment(payment));
+    return {
+      ...parsed,
+      payments,
+    };
   }
 
   /**
    * Parse and validate an array of Payment responses
    */
-  static parsePayments(payments: unknown): Payment[] {
+  parsePayments(payments: unknown): Payment<T>[] {
     if (!Array.isArray(payments)) {
       throw new Error("Expected payments to be an array");
     }
-    return payments.map((payment) => this.parsePayment(payment));
+    return payments.map(payment => this.parsePayment(payment));
   }
 
   /**
    * Safely parse a Payment response with error handling
    */
-  static safeParsePayment(payment: unknown): {
+  safeParsePayment(payment: unknown): {
     success: boolean;
-    data?: Payment;
+    data?: Payment<T>;
     error?: string;
   } {
     try {
@@ -349,20 +381,6 @@ export class PaymentUtils {
         error: error instanceof Error ? error.message : "Unknown parsing error",
       };
     }
-  }
-  static parseCreatePaymentRequest(
-    request: unknown
-  ): ValidationResult<CreatePaymentRequest> {
-    return this.validateCreatePaymentRequest(request as CreatePaymentRequest);
-  }
-
-  /**
-   * Parse and validate an UpdatePaymentRequest, returning sanitized data
-   */
-  static parseUpdatePaymentRequest(
-    request: unknown
-  ): ValidationResult<UpdatePaymentRequest> {
-    return this.validateUpdatePaymentRequest(request as UpdatePaymentRequest);
   }
 }
 

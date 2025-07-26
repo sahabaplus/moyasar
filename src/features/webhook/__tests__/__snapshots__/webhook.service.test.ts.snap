@@ -1,0 +1,33 @@
+// Bun Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`WebhookService Type safe data Using data parser should throw error if payload data is invalid 1`] = `
+"[
+  {
+    "code": "invalid_value",
+    "values": [
+      "delivery",
+      "pickup"
+    ],
+    "path": [
+      "service"
+    ],
+    "message": "Invalid option: expected one of \\"delivery\\"|\\"pickup\\""
+  }
+]"
+`;
+
+exports[`WebhookService Type safe data Using data parser should throw error as payload data is invalid 1`] = `
+"[
+  {
+    "code": "invalid_value",
+    "values": [
+      "delivery",
+      "pickup"
+    ],
+    "path": [
+      "service"
+    ],
+    "message": "Invalid option: expected one of \\"delivery\\"|\\"pickup\\""
+  }
+]"
+`;

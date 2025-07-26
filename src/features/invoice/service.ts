@@ -1,5 +1,6 @@
-import type { ApiClient } from "@types";
+import type { ApiClient, MoyasarClientTypes } from "@types";
 import { API_ENDPOINTS } from "@constants";
+import { MoyasarError } from "@errors";
 import type {
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
@@ -12,21 +13,30 @@ import type {
 import { InvoiceStatus } from "./enums";
 import { InvoiceUtils } from "./utils";
 import { InvoiceError } from "./errors";
-import { MoyasarError } from "@errors";
 
-export class InvoiceService {
-  private apiClient: ApiClient;
+type InvoiceServiceParams<T extends MoyasarClientTypes> = {
+  apiClient: ApiClient<T>;
+};
 
-  constructor(p: { apiClient: ApiClient }) {
+export class InvoiceService<T extends MoyasarClientTypes> {
+  private readonly apiClient: ApiClient<T>;
+  private readonly invoiceUtils: InvoiceUtils<T["metadata"]>;
+
+  constructor(p: InvoiceServiceParams<T>) {
     this.apiClient = p.apiClient;
+    this.invoiceUtils = new InvoiceUtils({
+      metadataValidator: this.apiClient.metadataValidator,
+    });
   }
 
   /**
    * Create a new invoice
    */
-  async create(params: CreateInvoiceRequest): Promise<DetailedInvoice> {
+  async create(
+    params: CreateInvoiceRequest<T["metadata"]>
+  ): Promise<DetailedInvoice<T["metadata"]>> {
     // Validate input
-    const validation = InvoiceUtils.validateCreateInvoiceRequest(params);
+    const validation = this.invoiceUtils.validateCreateInvoiceRequest(params);
     if (!validation.success) {
       throw new InvoiceError(
         `Validation failed: ${validation.errors.join(", ")}`
@@ -34,7 +44,9 @@ export class InvoiceService {
     }
 
     try {
-      const invoice = await this.apiClient.request<DetailedInvoice>({
+      const invoice = await this.apiClient.request<
+        DetailedInvoice<T["metadata"]>
+      >({
         method: "POST",
         url: API_ENDPOINTS.invoices,
         data: params,
@@ -51,10 +63,10 @@ export class InvoiceService {
    * Create multiple invoices in bulk
    */
   async createBulk(
-    params: BulkCreateInvoiceRequest
-  ): Promise<BulkCreateInvoicesResponse> {
+    params: BulkCreateInvoiceRequest<T["metadata"]>
+  ): Promise<BulkCreateInvoicesResponse<T["metadata"]>> {
     // Validate input
-    const validation = InvoiceUtils.validateBulkCreateRequest(params);
+    const validation = this.invoiceUtils.validateBulkCreateRequest(params);
     if (!validation.success) {
       throw new InvoiceError(
         `Validation failed: ${validation.errors.join(", ")}`
@@ -62,13 +74,13 @@ export class InvoiceService {
     }
 
     try {
-      const response = await this.apiClient.request<BulkCreateInvoicesResponse>(
-        {
-          method: "POST",
-          url: API_ENDPOINTS.bulkInvoices,
-          data: params,
-        }
-      );
+      const response = await this.apiClient.request<
+        BulkCreateInvoicesResponse<T["metadata"]>
+      >({
+        method: "POST",
+        url: API_ENDPOINTS.bulkInvoices,
+        data: params,
+      });
 
       return response;
     } catch (error) {
@@ -83,12 +95,14 @@ export class InvoiceService {
   /**
    * List invoices with optional filtering
    */
-  async list(options: InvoiceListOptions = {}): Promise<ListInvoicesResponse> {
+  async list(
+    options: InvoiceListOptions<T["metadata"]> = {}
+  ): Promise<ListInvoicesResponse<T["metadata"]>> {
     try {
       // Convert metadata filters to proper query format
       const queryParams = this.parseBody(options);
 
-      return await this.apiClient.request<ListInvoicesResponse>({
+      return await this.apiClient.request<ListInvoicesResponse<T["metadata"]>>({
         method: "GET",
         url: API_ENDPOINTS.invoices,
         params: queryParams,
@@ -102,13 +116,13 @@ export class InvoiceService {
   /**
    * Retrieve a specific invoice
    */
-  async retrieve(invoiceId: string): Promise<DetailedInvoice> {
+  async retrieve(invoiceId: string): Promise<DetailedInvoice<T["metadata"]>> {
     if (!invoiceId) {
       throw new InvoiceError("Invoice ID is required");
     }
 
     try {
-      return await this.apiClient.request<DetailedInvoice>({
+      return await this.apiClient.request<DetailedInvoice<T["metadata"]>>({
         method: "GET",
         url: `${API_ENDPOINTS.invoices}/${invoiceId}`,
       });
@@ -126,14 +140,16 @@ export class InvoiceService {
    */
   async update(
     invoiceId: string,
-    params: UpdateInvoiceRequest
-  ): Promise<DetailedInvoice> {
+    params: UpdateInvoiceRequest<T["metadata"]>
+  ): Promise<DetailedInvoice<T["metadata"]>> {
     if (!invoiceId) {
       throw new InvoiceError("Invoice ID is required");
     }
 
     try {
-      const invoice = await this.apiClient.request<DetailedInvoice>({
+      const invoice = await this.apiClient.request<
+        DetailedInvoice<T["metadata"]>
+      >({
         method: "PUT",
         url: `${API_ENDPOINTS.invoices}/${invoiceId}`,
         data: params,
@@ -152,13 +168,15 @@ export class InvoiceService {
   /**
    * Cancel an invoice
    */
-  async cancel(invoiceId: string): Promise<DetailedInvoice> {
+  async cancel(invoiceId: string): Promise<DetailedInvoice<T["metadata"]>> {
     if (!invoiceId) {
       throw new InvoiceError("Invoice ID is required");
     }
 
     try {
-      const invoice = await this.apiClient.request<DetailedInvoice>({
+      const invoice = await this.apiClient.request<
+        DetailedInvoice<T["metadata"]>
+      >({
         method: "PUT",
         url: `${API_ENDPOINTS.invoices}/${invoiceId}/cancel`,
       });
@@ -177,15 +195,13 @@ export class InvoiceService {
    * Search invoices by metadata
    */
   async searchByMetadata(
-    metadata: Record<string, string>,
+    metadata: Partial<T["metadata"]>,
     options: Omit<InvoiceListOptions, "metadata"> = {}
-  ): Promise<ListInvoicesResponse> {
-    const metadataQuery = InvoiceUtils.buildMetadataQuery(metadata);
-
+  ): Promise<ListInvoicesResponse<T["metadata"]>> {
     return this.list({
       ...options,
-      ...metadataQuery,
-    } as InvoiceListOptions);
+      metadata,
+    });
   }
 
   /**
@@ -194,7 +210,7 @@ export class InvoiceService {
   async getByStatus(
     status: InvoiceStatus,
     options: Omit<InvoiceListOptions, "status"> = {}
-  ): Promise<ListInvoicesResponse> {
+  ): Promise<ListInvoicesResponse<T["metadata"]>> {
     return this.list({
       ...options,
       status,
@@ -206,7 +222,7 @@ export class InvoiceService {
    */
   async getExpired(
     options: Omit<InvoiceListOptions, "status"> = {}
-  ): Promise<ListInvoicesResponse> {
+  ): Promise<ListInvoicesResponse<T["metadata"]>> {
     return this.getByStatus(InvoiceStatus.EXPIRED, options);
   }
 
@@ -215,7 +231,7 @@ export class InvoiceService {
    */
   async getPaid(
     options: Omit<InvoiceListOptions, "status"> = {}
-  ): Promise<ListInvoicesResponse> {
+  ): Promise<ListInvoicesResponse<T["metadata"]>> {
     return this.getByStatus(InvoiceStatus.PAID, options);
   }
 
@@ -236,8 +252,14 @@ export class InvoiceService {
     });
   }
 
-  protected parseBody(p: object) {
-    const copied = { ...p };
+  protected parseBody(p: InvoiceListOptions<T["metadata"]>) {
+    const copied = {
+      ...p,
+      ...this.invoiceUtils.buildMetadataQuery(p.metadata ?? {}),
+    };
+
+    delete copied.metadata;
+
     Object.entries(copied).forEach(([key, value]) => {
       if (typeof value === "object") {
         if (value instanceof Date) {

@@ -1,4 +1,4 @@
-export const WebhookEvents = {
+export const WebhookEvent = {
   PAYMENT_PAID: "payment_paid",
   PAYMENT_FAILED: "payment_failed",
   PAYMENT_VOIDED: "payment_voided",
@@ -17,12 +17,15 @@ export const WebhookEvents = {
   PAYOUT_RETURNED: "payout_returned",
 } as const;
 
-export type WebhookEvents = (typeof WebhookEvents)[keyof typeof WebhookEvents];
+export type WebhookEvent = (typeof WebhookEvent)[keyof typeof WebhookEvent];
 
-export const ALL_WEBHOOK_EVENTS = Object.values(WebhookEvents);
+export const ALL_WEBHOOK_EVENTS = Object.values(WebhookEvent);
 
-export const WebhookHttpMethods = {
+export const WebhookHttpMethod = {
   POST: "post",
   PUT: "put",
   PATCH: "patch",
 } as const;
+
+export type WebhookHttpMethod =
+  (typeof WebhookHttpMethod)[keyof typeof WebhookHttpMethod];

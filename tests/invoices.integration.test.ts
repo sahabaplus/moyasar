@@ -1,24 +1,26 @@
-import {
-  InvoiceError,
-  MoyasarClient,
-  type CreateInvoiceRequest,
-} from "@/index";
+import { InvoiceError, MoyasarClient } from "@/index";
 import { MoyasarError } from "../src/shared/errors";
 import dotenv from "dotenv";
 
 dotenv.config({ path: ".env" });
+type Metadata = {
+  app: "test" | "prod" | "staging";
+  user_id: string;
+  new_prop?: string;
+};
 
 describe("Invoice Testing", async () => {
-  const client = new MoyasarClient({
+  const client = new MoyasarClient<Metadata>({
     apiKey: process.env.MOYASAR_API_KEY!,
   });
   describe("Create/Retrieve/Update/Cancel an invoice", async () => {
-    const createInvoiceReq: CreateInvoiceRequest = {
+    const createInvoiceReq: Parameters<typeof client.invoice.create>[0] = {
       amount: 3000,
       currency: "SAR",
       description: "the payment",
       metadata: {
         user_id: "1234567890",
+        app: "test",
       },
     };
     const createdInvoice = client.invoice.create(createInvoiceReq);

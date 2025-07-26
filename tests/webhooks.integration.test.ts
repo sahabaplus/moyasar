@@ -1,17 +1,26 @@
 import { MoyasarClient, WebhookError } from "@/index";
-import { ALL_WEBHOOK_EVENTS, WebhookHttpMethods } from "@webhook";
+import { ALL_WEBHOOK_EVENTS, WebhookHttpMethod } from "@webhook";
 describe("Test Webhook", async () => {
-  const client = new MoyasarClient({
+  const client = new MoyasarClient<{
+    metadata: {
+      service: "delivery";
+      date: Date;
+    };
+  }>({
     apiKey: Bun.env.MOYASAR_API_KEY!,
   });
   let created_web_hook_id = "";
   it("should register a webhook", async () => {
     try {
       const webhook = await client.webhook.create({
-        http_method: WebhookHttpMethods.POST,
+        http_method: WebhookHttpMethod.POST,
         url: "https://api.sahabaplus.com/api/moyasar_webhook",
         events: ALL_WEBHOOK_EVENTS,
         shared_secret: "TEST_SHARED_SECRET",
+      });
+
+      client.webhook.onPaymentEvent("balance_transferred", payload => {
+        const a = payload.data;
       });
 
       created_web_hook_id = webhook.id;

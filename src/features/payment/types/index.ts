@@ -3,6 +3,7 @@ import type {
   BaseListOptions,
   CurrencyType,
   HasAmount,
+  HasMetadata,
   ListResponse,
   Metadata,
 } from "@types";
@@ -80,7 +81,9 @@ export type PaymentSourceUnion =
   | WalletPaymentSource
   | StcPaySource;
 
-export interface Payment extends HasAmount {
+export interface Payment<T extends object = Metadata>
+  extends HasAmount,
+    HasMetadata<T> {
   /**
    * @description uuid
    * @note if you have set the given_id when creating the payment, it will be returned here.
@@ -128,22 +131,23 @@ export interface Payment extends HasAmount {
   callback_url?: string | null;
   created_at: Date;
   updated_at: Date;
-  metadata: Metadata | null;
   source: PaymentSourceUnion;
 }
 
-export interface PaymentListOptions extends BaseListOptions {
+export interface PaymentListOptions<T extends object = Metadata>
+  extends BaseListOptions,
+    HasMetadata<T> {
   id?: string | undefined;
   status?: PaymentStatus | undefined;
   "created[gt]"?: Date | undefined;
   "created[lt]"?: Date | undefined;
   "updated[gt]"?: Date | undefined;
   "updated[lt]"?: Date | undefined;
-  metadata?: Metadata | undefined;
   last_4?: string; // Filter by card last 4 digit | undefineds
   rrn?: string; // Filter by RR | undefinedN
 }
 
-export interface ListPaymentsResponse extends ListResponse<Payment> {
-  payments: Payment[];
+export interface ListPaymentsResponse<T extends object = Metadata>
+  extends ListResponse<Payment<T>> {
+  payments: Payment<T>[];
 }

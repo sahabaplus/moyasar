@@ -1,6 +1,6 @@
-import { WebhookEvents, WebhookHttpMethods } from "../enums";
+import { WebhookEvent, WebhookHttpMethod } from "../enums";
 import { WebhookService } from "../service";
-import { WebhookError } from "../errors";
+import { WebhookError, WebhookValidationError } from "../errors";
 import type {
   Webhook,
   WebhookPayload,
@@ -10,13 +10,15 @@ import type {
   WebhookAttempt,
 } from "../types";
 import { MockApiClient } from "./mock_api_client";
+import z from "zod";
+import type { Metadata } from "../../../shared";
 
 describe("WebhookService", () => {
-  let mockApiClient: MockApiClient;
-  let webhookService: WebhookService;
+  let mockApiClient = new MockApiClient({});
+  let webhookService = new WebhookService({ apiClient: mockApiClient });
 
   beforeEach(() => {
-    mockApiClient = new MockApiClient();
+    mockApiClient = new MockApiClient({});
     webhookService = new WebhookService({ apiClient: mockApiClient });
   });
 
@@ -28,8 +30,8 @@ describe("WebhookService", () => {
   describe("API tests", async () => {
     it("should accepts the right types and has the right signature", () => {
       const v = webhookService
-        .onPaymentEvent(WebhookEvents.PAYMENT_ABANDONED, p => {})
-        .onPaymentEvent(WebhookEvents.PAYMENT_ABANDONED, p => {})
+        .onPaymentEvent(WebhookEvent.PAYMENT_ABANDONED, p => {})
+        .onPaymentEvent(WebhookEvent.PAYMENT_ABANDONED, p => {})
         .onAnyPaymentEvent(p => {}).availableEvents;
     });
   });
@@ -37,17 +39,17 @@ describe("WebhookService", () => {
   describe("create", () => {
     const validCreateRequest: CreateWebhookRequest = {
       url: "https://example.com/webhook",
-      http_method: WebhookHttpMethods.POST,
-      events: [WebhookEvents.PAYMENT_PAID, WebhookEvents.PAYMENT_FAILED],
+      http_method: WebhookHttpMethod.POST,
+      events: [WebhookEvent.PAYMENT_PAID, WebhookEvent.PAYMENT_FAILED],
       shared_secret: "secret123",
     };
 
     const mockWebhook: Webhook = {
       id: "webhook_123",
       url: "https://example.com/webhook",
-      http_method: WebhookHttpMethods.POST,
-      events: [WebhookEvents.PAYMENT_PAID, WebhookEvents.PAYMENT_FAILED],
-      created_at: "2024-01-01T00:00:00Z",
+      http_method: WebhookHttpMethod.POST,
+      events: [WebhookEvent.PAYMENT_PAID, WebhookEvent.PAYMENT_FAILED],
+      created_at: "2030-01-01T00:00:00Z",
       shared_secret: null as never,
     };
 
@@ -116,9 +118,9 @@ describe("WebhookService", () => {
         {
           id: "webhook_1",
           url: "https://example.com/webhook1",
-          http_method: WebhookHttpMethods.POST,
-          events: [WebhookEvents.PAYMENT_PAID],
-          created_at: "2024-01-01T00:00:00Z",
+          http_method: WebhookHttpMethod.POST,
+          events: [WebhookEvent.PAYMENT_PAID],
+          created_at: "2030-01-01T00:00:00Z",
           shared_secret: null as never,
         },
       ],
@@ -160,9 +162,9 @@ describe("WebhookService", () => {
     const mockWebhook: Webhook = {
       id: "webhook_123",
       url: "https://example.com/webhook",
-      http_method: WebhookHttpMethods.POST,
-      events: [WebhookEvents.PAYMENT_PAID],
-      created_at: "2024-01-01T00:00:00Z",
+      http_method: WebhookHttpMethod.POST,
+      events: [WebhookEvent.PAYMENT_PAID],
+      created_at: "2030-01-01T00:00:00Z",
       shared_secret: null as never,
     };
 
@@ -187,15 +189,15 @@ describe("WebhookService", () => {
   describe("update", () => {
     const updateRequest: UpdateWebhookRequest = {
       url: "https://updated.example.com/webhook",
-      events: [WebhookEvents.PAYMENT_PAID, WebhookEvents.PAYMENT_REFUNDED],
+      events: [WebhookEvent.PAYMENT_PAID, WebhookEvent.PAYMENT_REFUNDED],
     };
 
     const mockUpdatedWebhook: Webhook = {
       id: "webhook_123",
       url: "https://updated.example.com/webhook",
-      http_method: WebhookHttpMethods.POST,
-      events: [WebhookEvents.PAYMENT_PAID, WebhookEvents.PAYMENT_REFUNDED],
-      created_at: "2024-01-01T00:00:00Z",
+      http_method: WebhookHttpMethod.POST,
+      events: [WebhookEvent.PAYMENT_PAID, WebhookEvent.PAYMENT_REFUNDED],
+      created_at: "2030-01-01T00:00:00Z",
       shared_secret: null as never,
     };
 
@@ -232,8 +234,8 @@ describe("WebhookService", () => {
   describe("processWebhook", () => {
     const validPayload: WebhookPayload = {
       id: "event_123",
-      type: WebhookEvents.PAYMENT_PAID,
-      created_at: "2024-01-01T00:00:00Z",
+      type: WebhookEvent.PAYMENT_PAID,
+      created_at: "2030-01-01T00:00:00Z",
       secret_token: "secret",
       account_name: "test_account",
       live: false,
@@ -242,7 +244,7 @@ describe("WebhookService", () => {
 
     it("should process webhook payload successfully", async () => {
       const eventSpy = jest.fn();
-      webhookService.on(WebhookEvents.PAYMENT_PAID, eventSpy);
+      webhookService.on(WebhookEvent.PAYMENT_PAID, eventSpy);
 
       const result = await webhookService.processWebhook(validPayload, {
         secret_token: "secret",
@@ -255,7 +257,7 @@ describe("WebhookService", () => {
     it("should parse JSON string payload", async () => {
       const jsonPayload = JSON.stringify(validPayload);
       const eventSpy = jest.fn();
-      webhookService.on(WebhookEvents.PAYMENT_PAID, eventSpy);
+      webhookService.on(WebhookEvent.PAYMENT_PAID, eventSpy);
 
       const result = await webhookService.processWebhook(jsonPayload, {
         secret_token: "secret",
@@ -313,12 +315,12 @@ describe("WebhookService", () => {
   describe("event listeners", () => {
     it("should support onPaymentEvent utility", async () => {
       const paymentSpy = jest.fn();
-      webhookService.onPaymentEvent(WebhookEvents.PAYMENT_PAID, paymentSpy);
+      webhookService.onPaymentEvent(WebhookEvent.PAYMENT_PAID, paymentSpy);
 
       const payload: WebhookPayload = {
         id: "event_123",
-        type: WebhookEvents.PAYMENT_PAID,
-        created_at: "2024-01-01T00:00:00Z",
+        type: WebhookEvent.PAYMENT_PAID,
+        created_at: "2030-01-01T00:00:00Z",
         secret_token: "secret",
         account_name: "test_account",
         live: false,
@@ -338,8 +340,8 @@ describe("WebhookService", () => {
 
       const payload: WebhookPayload = {
         id: "event_123",
-        type: WebhookEvents.PAYMENT_FAILED,
-        created_at: "2024-01-01T00:00:00Z",
+        type: WebhookEvent.PAYMENT_FAILED,
+        created_at: "2030-01-01T00:00:00Z",
         secret_token: "secret",
         account_name: "test_account",
         live: false,
@@ -357,9 +359,9 @@ describe("WebhookService", () => {
       const mockWebhook: Webhook = {
         id: "webhook_123",
         url: "https://example.com/webhook",
-        http_method: WebhookHttpMethods.POST,
-        events: [WebhookEvents.PAYMENT_PAID],
-        created_at: "2024-01-01T00:00:00Z",
+        http_method: WebhookHttpMethod.POST,
+        events: [WebhookEvent.PAYMENT_PAID],
+        created_at: "2030-01-01T00:00:00Z",
         shared_secret: null as never,
       };
 
@@ -368,7 +370,7 @@ describe("WebhookService", () => {
 
       await webhookService.create({
         url: "https://example.com/webhook",
-        http_method: WebhookHttpMethods.POST,
+        http_method: WebhookHttpMethod.POST,
         shared_secret: "secret",
       });
 
@@ -386,14 +388,14 @@ describe("WebhookService", () => {
       id: "attempt_123",
       webhook_id: "webhook_123",
       event_id: "event_123",
-      event_type: WebhookEvents.PAYMENT_PAID,
+      event_type: WebhookEvent.PAYMENT_PAID,
       retry_number: 1,
       result: "success",
       message: "Success",
       response_code: 200,
       response_headers: "{}",
       response_body: "OK",
-      created_at: "2024-01-01T00:00:00Z",
+      created_at: "2030-01-01T00:00:00Z",
     };
 
     it("should list webhook attempts", async () => {
@@ -484,4 +486,137 @@ describe("WebhookService", () => {
       expect(signature).toBeNull();
     });
   });
+
+  describe("Type safe data", () => {
+    describe("Using data parser", () => {
+      it("should process webhook payload successfully", async () => {
+        const mockClient = new MockApiClient({
+          dataParser: z.object({
+            service: z.enum(["delivery", "pickup"]),
+            date: z.coerce.date(),
+          }),
+        });
+        const webhookService = new WebhookService({
+          apiClient: mockClient,
+        });
+        const validPayload: WebhookPayload = {
+          id: "event_123",
+          type: WebhookEvent.PAYMENT_PAID,
+          created_at: "2030-01-01T00:00:00Z",
+          secret_token: "secret",
+          account_name: "test_account",
+          live: false,
+          data: {
+            service: "delivery",
+            date: "2030-01-01T00:00:00Z",
+          },
+        };
+        const eventSpy = jest.fn();
+        webhookService.on(WebhookEvent.PAYMENT_PAID, eventSpy);
+
+        const result = await webhookService.processWebhook(validPayload, {
+          secret_token: "secret",
+        });
+
+        const expectedPayload: typeof result = {
+          ...validPayload,
+          data: {
+            service: "delivery",
+            date: new Date("2030-01-01T00:00:00Z"),
+          },
+        };
+
+        expect(result).toEqual(expectedPayload);
+        expect(eventSpy).toHaveBeenCalledWith(expectedPayload);
+      });
+
+      it("should throw error as payload data is invalid", async () => {
+        const mockClient = new MockApiClient({
+          dataParser: z.object({
+            service: z.enum(["delivery", "pickup"]),
+            date: z.coerce.date(),
+          }),
+        });
+        const webhookService = new WebhookService({
+          apiClient: mockClient,
+        });
+        const invalidPayload: WebhookPayload = {
+          id: "event_123",
+          type: WebhookEvent.PAYMENT_PAID,
+          created_at: "2030-01-01T00:00:00Z",
+          secret_token: "secret",
+          account_name: "test_account",
+          live: false,
+          data: {
+            service: "unsupported_service_name",
+            date: "2030-01-01T00:00:00Z",
+          },
+        };
+        const eventSpy = jest.fn();
+        webhookService.on(WebhookEvent.PAYMENT_PAID, eventSpy);
+
+        const resultPromise = webhookService.processWebhook(invalidPayload, {
+          secret_token: "secret",
+        });
+
+        expect(resultPromise).rejects.toThrow(WebhookValidationError);
+        resultPromise.catch(e => {
+          expect((e as WebhookValidationError).unexpected_payload).toEqual(
+            invalidPayload
+          );
+          expect((e as WebhookValidationError).message).toMatchSnapshot();
+        });
+      });
+
+      it("should, in a type safe way, pass the payload data to the event listener", async () => {
+        const mockClient = new MockApiClient({
+          dataParser: z.object({
+            service: z.enum(["delivery", "pickup"]),
+            date: z.coerce.date(),
+          }),
+        });
+        const webhookService = new WebhookService({
+          apiClient: mockClient,
+        });
+        const validPayload: WebhookPayload = {
+          id: "event_123",
+          type: WebhookEvent.PAYMENT_PAID,
+          created_at: "2030-01-01T00:00:00Z",
+          secret_token: "secret",
+          account_name: "test_account",
+          live: false,
+          data: {
+            service: "delivery",
+            date: "2030-01-01T00:00:00Z",
+          },
+        };
+
+        const eventSpy = jest.fn();
+        webhookService.on(WebhookEvent.PAYMENT_PAID, eventSpy);
+
+        const result = await webhookService.processWebhook(validPayload, {
+          secret_token: "secret",
+        });
+
+        const expectedPayload: typeof result = {
+          ...validPayload,
+          data: {
+            service: "delivery",
+            date: new Date("2030-01-01T00:00:00Z"),
+          },
+        };
+
+        expect(eventSpy).toHaveBeenCalledWith(expectedPayload);
+
+        webhookService.onPaymentEvent(WebhookEvent.PAYMENT_PAID, payload => {
+          expect(payload.data).toEqual({
+            service: "delivery",
+            date: new Date("2030-01-01T00:00:00Z"),
+          });
+        });
+      });
+    });
+  });
 });
+
+//

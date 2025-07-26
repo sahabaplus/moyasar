@@ -1,4 +1,4 @@
-export { ALL_WEBHOOK_EVENTS, WebhookEvents, WebhookHttpMethods } from "./enums";
+export { ALL_WEBHOOK_EVENTS, WebhookEvent, WebhookHttpMethod } from "./enums";
 export * from "./types";
 export { WebhookUtils } from "./utils";
 export * from "./errors";

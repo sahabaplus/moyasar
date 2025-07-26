@@ -4,15 +4,11 @@ import axios, {
   type AxiosRequestConfig,
   type AxiosResponse,
 } from "axios";
-import {
-  type ApiClient,
-  type ApiClientOptions,
-  type RequestConfig,
-} from "@types";
+import { type ApiClientOptions, type RequestConfig } from "@types";
 import { DEFAULT_API_CONFIG } from "@constants";
 import { MoyasarError } from "@errors";
 
-export class BaseApiClient implements ApiClient {
+export abstract class BaseAxiosApiClient {
   private axiosInstance: AxiosInstance;
 
   constructor(apiKey: string, options: ApiClientOptions = {}) {

@@ -1,18 +1,18 @@
-import { WebhookEvents, WebhookHttpMethods } from "./enums";
+import { WebhookEvent, WebhookHttpMethod } from "./enums";
 
 export class WebhookValidation {
   /**
    * Validate webhook event type
    */
   static isValidWebhookEvent(event: string): boolean {
-    return Object.values(WebhookEvents).includes(event as any);
+    return Object.values(WebhookEvent).includes(event as any);
   }
 
   /**
    * Validate HTTP method
    */
   static isValidHttpMethod(method: string): boolean {
-    return Object.values(WebhookHttpMethods).includes(method as any);
+    return Object.values(WebhookHttpMethod).includes(method as any);
   }
 
   /**

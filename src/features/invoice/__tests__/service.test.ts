@@ -3,9 +3,7 @@ import {
   InvoiceService,
   InvoiceStatus,
   type CreateInvoiceRequest,
-  type BulkCreateInvoiceRequest,
   type UpdateInvoiceRequest,
-  type InvoiceListOptions,
   type Invoice,
   type BulkCreateInvoicesResponse,
   type DetailedInvoice,
@@ -14,6 +12,7 @@ import {
 import type { ApiClient, RequestConfig } from "@types";
 import { describe, expect, beforeEach, mock, it, jest } from "bun:test";
 import { API_ENDPOINTS } from "@constants";
+import z from "zod";
 
 const mockValidation = {
   success: true,
@@ -26,15 +25,25 @@ const validateBulkCreateRequest = mock().mockReturnValue(mockValidation);
 const buildMetadataQuery = mock().mockReturnValue({});
 
 mock.module("@invoice", () => ({
-  InvoiceUtils: {
-    validateCreateInvoiceRequest,
-    validateBulkCreateRequest,
-    buildMetadataQuery,
+  InvoiceUtils: class {
+    validateCreateInvoiceRequest = validateCreateInvoiceRequest;
+    validateBulkCreateRequest = validateBulkCreateRequest;
+    buildMetadataQuery = buildMetadataQuery;
   },
 }));
 
-const mockApiClient: ApiClient = {
+const metadataSchema = z.object({
+  orderId: z.string(),
+  customerType: z.string(),
+});
+
+const mockApiClient: ApiClient<{
+  metadata: z.infer<typeof metadataSchema>;
+}> = {
   request: mock().mockResolvedValue({}),
+  metadataValidator: {
+    parse: metadataSchema.parse,
+  },
 };
 
 const createMockInvoice = (
@@ -69,10 +78,26 @@ const createMockInvoiceListResponse = (
 });
 
 describe("InvoiceService", () => {
-  let invoiceService: InvoiceService;
+  let invoiceService = new InvoiceService({
+    apiClient: mockApiClient,
+  });
+
+  const validCreateRequest: Parameters<typeof invoiceService.create>[0] = {
+    amount: 1000,
+    currency: "USD",
+    description: "Test invoice",
+    callback_url: "https://example.com/callback",
+    // @ts-expect-error - should errors as `metadata` is not valid.
+    metadata: {},
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    buildMetadataQuery.mockReturnValue({});
+    mockApiClient.request = mock().mockResolvedValue({});
+    mockValidation.success = true;
+    mockValidation.errors = [];
 
     invoiceService = new InvoiceService({
       apiClient: mockApiClient,
@@ -83,12 +108,12 @@ describe("InvoiceService", () => {
   });
 
   describe("create", () => {
-    const validCreateRequest: CreateInvoiceRequest = {
+    const validCreateRequest: Parameters<typeof invoiceService.create>[0] = {
       amount: 1000,
       currency: "USD",
       description: "Test invoice",
       callback_url: "https://example.com/callback",
-      metadata: { orderId: "12345" },
+      metadata: { orderId: "12345", customerType: "new_customer" },
     };
 
     beforeEach(() => {
@@ -157,7 +182,7 @@ describe("InvoiceService", () => {
   });
 
   describe("createBulk", () => {
-    const validBulkRequest: BulkCreateInvoiceRequest = {
+    const validBulkRequest: Parameters<typeof invoiceService.createBulk>[0] = {
       invoices: [
         {
           amount: 1000,
@@ -251,8 +276,7 @@ describe("InvoiceService", () => {
     });
 
     it("should list invoices with status filter", async () => {
-      const options: InvoiceListOptions = { status: InvoiceStatus.PAID };
-      await invoiceService.list(options);
+      await invoiceService.list({ status: InvoiceStatus.PAID });
 
       expect(mockApiClient.request as any).toHaveBeenCalledWith({
         method: "GET",
@@ -265,12 +289,10 @@ describe("InvoiceService", () => {
       const createdAfter = new Date("2023-01-01");
       const createdBefore = new Date("2023-12-31");
 
-      const options: InvoiceListOptions = {
+      await invoiceService.list({
         "created[gt]": createdAfter,
         "created[lt]": createdBefore,
-      };
-
-      await invoiceService.list(options);
+      });
 
       expect(mockApiClient.request as any).toHaveBeenCalledWith({
         method: "GET",
@@ -571,13 +593,17 @@ describe("InvoiceService", () => {
         metadata: { test: "value" },
       };
 
+      buildMetadataQuery.mockReturnValue({
+        "metadata[test]": "value",
+      });
+
       const result = (invoiceService as any).parseBody(input);
 
       expect(result).toEqual({
         status: "paid",
         "created[gt]": "2023-01-01T00:00:00.000Z",
         amount: 1000,
-        metadata: { test: "value" },
+        "metadata[test]": "value",
       });
     });
 
@@ -657,7 +683,7 @@ describe("InvoiceService", () => {
         new Error("Request timeout")
       );
 
-      const createRequest: CreateInvoiceRequest = {
+      const createRequest: Parameters<typeof invoiceService.create>[0] = {
         amount: 1000,
         currency: "USD",
         description: "Test invoice",
@@ -731,60 +757,12 @@ describe("InvoiceService", () => {
       });
 
       const response = await invoiceService.searchByMetadata({
+        // @ts-expect-error - should errors as `nonExistentKey` is not in the schema.
         nonExistentKey: "nonExistentValue",
       });
 
       expect(response.invoices).toHaveLength(0);
       expect(response.meta.total_count).toBe(0);
-    });
-
-    it("should handle large metadata objects", async () => {
-      const largeMetadata = Object.fromEntries(
-        Array.from({ length: 100 }, (_, i) => [`key${i}`, `value${i}`])
-      );
-
-      const mockInvoice = createMockInvoice({ metadata: largeMetadata });
-      (mockApiClient.request as any).mockResolvedValue(mockInvoice);
-
-      const createRequest: CreateInvoiceRequest = {
-        amount: 1000,
-        currency: "USD",
-        description: "Invoice with large metadata",
-        metadata: largeMetadata,
-      };
-
-      const invoice = await invoiceService.create(createRequest);
-
-      expect(invoice.metadata).toEqual(largeMetadata);
-
-      expect(mockApiClient.request as any).toHaveBeenCalledWith({
-        method: "POST",
-        url: `${API_ENDPOINTS.invoices}`,
-        data: createRequest,
-      });
-    });
-
-    it("should handle special characters in descriptions and metadata", async () => {
-      const createRequest: CreateInvoiceRequest = {
-        amount: 1000,
-        currency: "USD",
-        description: "Invoice with émojis 🎉 and spëcial chars & symbols!",
-        metadata: {
-          "special-key": "value with spaces & symbols!",
-          "unicode-key": "🎯 Unicode value",
-        },
-      };
-
-      const mockInvoice = createMockInvoice({
-        description: createRequest.description,
-        metadata: createRequest.metadata!,
-      });
-      (mockApiClient.request as any).mockResolvedValue(mockInvoice);
-
-      const invoice = await invoiceService.create(createRequest);
-
-      expect(invoice.description).toBe(createRequest.description);
-      expect(invoice.metadata).toEqual(createRequest.metadata!);
     });
   });
 });

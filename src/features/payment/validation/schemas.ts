@@ -4,6 +4,8 @@ import { PaymentSource, CardScheme, CardType, PaymentStatus } from "../enums";
 import {
   type CapturePaymentRequest,
   type CreateGooglePayPaymentSource,
+  type CreateApplePayPaymentSource,
+  type CreateSamsungPayPaymentSource,
   type CreatePaymentRequest,
   type CreateStcPayPaymentSource,
   type CreateTokenPaymentSource,
@@ -160,12 +162,8 @@ const TokenSourceSchema = z.object({
   manual: z.boolean().optional(),
 } satisfies AllKeys<CreateTokenPaymentSource>);
 
-const WalletPaymentSourceSchema = z.object({
-  type: z.enum([
-    PaymentSource.GOOGLEPAY,
-    PaymentSource.APPLEPAY,
-    PaymentSource.SAMSUNGPAY,
-  ]),
+const GooglePaySourceSchema = z.object({
+  type: z.literal(PaymentSource.GOOGLEPAY),
   token: z.string().optional(),
   manual: z.boolean().optional(),
   save_card: z.boolean().optional(),
@@ -174,6 +172,28 @@ const WalletPaymentSourceSchema = z.object({
     .max(PaymentValidation.STATEMENT_DESCRIPTOR_MAX_LENGTH)
     .optional(),
 } satisfies AllKeys<CreateGooglePayPaymentSource>);
+
+const ApplePaySourceSchema = z.object({
+  type: z.literal(PaymentSource.APPLEPAY),
+  token: z.string(),
+  manual: z.boolean().optional(),
+  save_card: z.boolean().optional(),
+  statement_descriptor: z
+    .string()
+    .max(PaymentValidation.STATEMENT_DESCRIPTOR_MAX_LENGTH)
+    .optional(),
+} satisfies AllKeys<CreateApplePayPaymentSource>);
+
+const SamsungPaySourceSchema = z.object({
+  type: z.literal(PaymentSource.SAMSUNGPAY),
+  token: z.string(),
+  manual: z.boolean().optional(),
+  save_card: z.boolean().optional(),
+  statement_descriptor: z
+    .string()
+    .max(PaymentValidation.STATEMENT_DESCRIPTOR_MAX_LENGTH)
+    .optional(),
+} satisfies AllKeys<CreateSamsungPayPaymentSource>);
 
 const StcPaySourceSchema = z.object({
   type: z.literal(PaymentSource.STCPAY),
@@ -190,9 +210,12 @@ const StcPaySourceSchema = z.object({
 const CreatePaymentSourceSchema = z.discriminatedUnion("type", [
   CreditCardSourceSchema,
   TokenSourceSchema,
-  WalletPaymentSourceSchema,
+  GooglePaySourceSchema,
+  ApplePaySourceSchema,
+  SamsungPaySourceSchema,
   StcPaySourceSchema,
 ]);
+
 export const CreatePaymentSchema = z.object({
   given_id: z.uuid("ID must be a valid UUID").optional(),
   amount: amountSchema,
@@ -232,6 +255,6 @@ export const CapturePaymentSchema = z
   .optional();
 
 export const listPaymentResponseSchema = z.object({
-  payments: z.array(PaymentSchema),
+  payments: z.array(z.unknown()),
   meta: paginationMetaSchema,
 } satisfies AllKeys<ListPaymentsResponse>);

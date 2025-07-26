@@ -1,4 +1,4 @@
-import type { CurrencyType, HasAmount, Metadata } from "@types";
+import type { CurrencyType, HasAmount, HasMetadata, Metadata } from "@types";
 import type { PaymentSource } from "@payment";
 
 export interface SaveCard {
@@ -92,13 +92,15 @@ export type CreatePaymentSource = CreatePaymentSourceBase &
     | CreateStcPayPaymentSource
   );
 
-export interface CreatePaymentRequest extends HasAmount {
+export interface CreatePaymentRequest<T extends object = Metadata>
+  extends HasAmount,
+    HasMetadata<T> {
   /**
    * @description A UUID (v4 is recommended) that you generate from your side and attach it with the payment creation request to support idempotency. It is going be the ID of the created payment.
    * @see https://docs.moyasar.com/api/idempotency/
    * @see https://docs.moyasar.com/api/payments/01-create-payment#responses
    */
-  given_id?: string;
+  given_id?: string | undefined;
   currency: CurrencyType;
   /**
    * @description Human readable description for the payment. This is shown to the merchant only and is not shown to the payer.
@@ -107,13 +109,12 @@ export interface CreatePaymentRequest extends HasAmount {
   description: string;
   callback_url: string;
   source: CreatePaymentSource;
-  metadata?: Metadata | undefined;
   apply_coupon?: boolean | undefined;
 }
 
-export interface UpdatePaymentRequest {
+export interface UpdatePaymentRequest<T extends object = Metadata>
+  extends HasMetadata<Partial<T>> {
   description?: string | undefined;
-  metadata?: Metadata | undefined;
 }
 
 export interface RefundPaymentRequest {

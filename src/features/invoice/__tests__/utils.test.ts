@@ -1,11 +1,11 @@
 import {
-  InvoiceUtils,
   type CreateInvoiceRequest,
   type BulkCreateInvoiceRequest,
   type Invoice,
   type DetailedInvoice,
   InvoiceStatus,
   BulkInvoiceLimit,
+  InvoiceUtils,
 } from "@invoice";
 
 import {
@@ -70,7 +70,13 @@ const paymentTemplate: Payment = {
   } satisfies CreditCardSource,
 };
 
-describe("InvoiceUtils", () => {
+describe("invoiceUtils", () => {
+  const invoiceUtils = new InvoiceUtils({
+    metadataValidator: {
+      parse: payload => payload,
+    },
+  });
+
   describe("validateCreateInvoiceRequest", () => {
     test("should validate a valid create invoice request", () => {
       const validRequest: CreateInvoiceRequest = {
@@ -84,7 +90,7 @@ describe("InvoiceUtils", () => {
         metadata: { orderId: "12345" },
       };
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(validRequest);
+      const result = invoiceUtils.validateCreateInvoiceRequest(validRequest);
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
@@ -100,7 +106,7 @@ describe("InvoiceUtils", () => {
         description: "Minimal test",
       };
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(minimalRequest);
+      const result = invoiceUtils.validateCreateInvoiceRequest(minimalRequest);
       expect(result.success).toBe(true);
       expect(result.data?.currency).toBe("EUR"); // Should be transformed to uppercase
       expect(result.data?.description).toBe("Minimal test");
@@ -113,7 +119,7 @@ describe("InvoiceUtils", () => {
         description: "Test",
       } as CreateInvoiceRequest;
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(invalidRequest);
+      const result = invoiceUtils.validateCreateInvoiceRequest(invalidRequest);
 
       expect(result.success).toBe(false);
       expect(result.errors).toContain(
@@ -128,7 +134,7 @@ describe("InvoiceUtils", () => {
         description: "Test",
       } as CreateInvoiceRequest;
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(invalidRequest);
+      const result = invoiceUtils.validateCreateInvoiceRequest(invalidRequest);
 
       expect(result.success).toBe(false);
       expect(result.errors).toContain(
@@ -143,7 +149,7 @@ describe("InvoiceUtils", () => {
         description: "Test",
       } as CreateInvoiceRequest;
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(invalidRequest);
+      const result = invoiceUtils.validateCreateInvoiceRequest(invalidRequest);
 
       expect(result.success).toBe(false);
       expect(result.errors).toContain("currency: Invalid currency");
@@ -156,7 +162,7 @@ describe("InvoiceUtils", () => {
         description: "",
       } as CreateInvoiceRequest;
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(invalidRequest);
+      const result = invoiceUtils.validateCreateInvoiceRequest(invalidRequest);
 
       expect(result.success).toBe(false);
       expect(result.errors).toContain("description: description is required");
@@ -169,7 +175,7 @@ describe("InvoiceUtils", () => {
         description: "a".repeat(256),
       } as CreateInvoiceRequest;
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(invalidRequest);
+      const result = invoiceUtils.validateCreateInvoiceRequest(invalidRequest);
 
       expect(result.success).toBe(false);
       expect(result.errors).toContain(
@@ -184,7 +190,7 @@ describe("InvoiceUtils", () => {
         description: "  Test with spaces  ",
       };
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(request);
+      const result = invoiceUtils.validateCreateInvoiceRequest(request);
 
       expect(result.success).toBe(true);
       expect(result.data?.description).toBe("Test with spaces");
@@ -198,7 +204,7 @@ describe("InvoiceUtils", () => {
         callback_url: "not-a-url" as any,
       } as CreateInvoiceRequest;
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(invalidRequest);
+      const result = invoiceUtils.validateCreateInvoiceRequest(invalidRequest);
 
       expect(result.success).toBe(false);
       expect(result.errors).toContain(
@@ -214,7 +220,7 @@ describe("InvoiceUtils", () => {
         expired_at: new Date(Date.now() - 86400000), // 24 hours ago
       } as CreateInvoiceRequest;
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(invalidRequest);
+      const result = invoiceUtils.validateCreateInvoiceRequest(invalidRequest);
 
       expect(result.success).toBe(false);
       expect(result.errors).toContain(
@@ -230,7 +236,7 @@ describe("InvoiceUtils", () => {
         expired_at: new Date("invalid-date"),
       } as CreateInvoiceRequest;
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(invalidRequest);
+      const result = invoiceUtils.validateCreateInvoiceRequest(invalidRequest);
 
       expect(result.success).toBe(false);
       expect(result.errors).toContain(
@@ -256,7 +262,7 @@ describe("InvoiceUtils", () => {
         ],
       };
 
-      const result = InvoiceUtils.validateBulkCreateRequest(validRequest);
+      const result = invoiceUtils.validateBulkCreateRequest(validRequest);
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
@@ -269,7 +275,7 @@ describe("InvoiceUtils", () => {
         invoices: [],
       };
 
-      const result = InvoiceUtils.validateBulkCreateRequest(invalidRequest);
+      const result = invoiceUtils.validateBulkCreateRequest(invalidRequest);
 
       expect(result.success).toBe(false);
       expect(result.errors).toContain(
@@ -286,7 +292,7 @@ describe("InvoiceUtils", () => {
         }),
       };
 
-      const result = InvoiceUtils.validateBulkCreateRequest(invalidRequest);
+      const result = invoiceUtils.validateBulkCreateRequest(invalidRequest);
 
       expect(result.success).toBe(false);
       expect(result.errors).toContain(
@@ -310,7 +316,7 @@ describe("InvoiceUtils", () => {
         ],
       };
 
-      const result = InvoiceUtils.validateBulkCreateRequest(invalidRequest);
+      const result = invoiceUtils.validateBulkCreateRequest(invalidRequest);
 
       expect(result.success).toBe(false);
       expect(result.errors).toEqual([
@@ -324,59 +330,59 @@ describe("InvoiceUtils", () => {
 
   describe("formatAmount", () => {
     test("should format USD amount correctly", () => {
-      const formatted = InvoiceUtils.formatAmount(1000, "USD");
+      const formatted = invoiceUtils.formatAmount(1000, "USD");
       expect(formatted).toBe("10.00 USD");
     });
 
     test("should format JPY amount correctly", () => {
-      const formatted = InvoiceUtils.formatAmount(1000, "JPY");
+      const formatted = invoiceUtils.formatAmount(1000, "JPY");
       expect(formatted).toBe("1000 JPY");
     });
 
     test("should format KWD amount correctly", () => {
-      const formatted = InvoiceUtils.formatAmount(1000, "KWD");
+      const formatted = invoiceUtils.formatAmount(1000, "KWD");
       expect(formatted).toBe("1.00 KWD");
     });
 
     test("should format SAR amount correctly", () => {
-      const formatted = InvoiceUtils.formatAmount(1000, "SAR");
+      const formatted = invoiceUtils.formatAmount(1000, "SAR");
       expect(formatted).toBe("10.00 SAR");
     });
 
     test("should handle lowercase currency", () => {
-      const formatted = InvoiceUtils.formatAmount(1000, "USD");
+      const formatted = invoiceUtils.formatAmount(1000, "USD");
       expect(formatted).toBe("10.00 USD");
     });
 
     test("should use default divisor for unknown currency", () => {
-      const formatted = InvoiceUtils.formatAmount(1000, "XYZ" as any);
+      const formatted = invoiceUtils.formatAmount(1000, "XYZ" as any);
       expect(formatted).toBe("10.00 XYZ");
     });
   });
 
   describe("parseAmount", () => {
     test("should parse USD amount correctly", () => {
-      const amount = InvoiceUtils.parseAmount("10.00", "USD");
+      const amount = invoiceUtils.parseAmount("10.00", "USD");
       expect(amount).toBe(1000);
     });
 
     test("should parse JPY amount correctly", () => {
-      const amount = InvoiceUtils.parseAmount("1000", "JPY");
+      const amount = invoiceUtils.parseAmount("1000", "JPY");
       expect(amount).toBe(1000);
     });
 
     test("should parse KWD amount correctly", () => {
-      const amount = InvoiceUtils.parseAmount("1.00", "KWD");
+      const amount = invoiceUtils.parseAmount("1.00", "KWD");
       expect(amount).toBe(1000);
     });
 
     test("should handle formatted strings with currency symbols", () => {
-      const amount = InvoiceUtils.parseAmount("$10.50", "USD");
+      const amount = invoiceUtils.parseAmount("$10.50", "USD");
       expect(amount).toBe(1050);
     });
 
     test("should round to nearest integer", () => {
-      const amount = InvoiceUtils.parseAmount("10.555", "USD");
+      const amount = invoiceUtils.parseAmount("10.555", "USD");
       expect(amount).toBe(1056);
     });
   });
@@ -391,7 +397,7 @@ describe("InvoiceUtils", () => {
       ];
 
       finalStatuses.forEach(status => {
-        expect(InvoiceUtils.isInvoiceFinal(status)).toBe(true);
+        expect(invoiceUtils.isInvoiceFinal(status)).toBe(true);
       });
     });
 
@@ -402,7 +408,7 @@ describe("InvoiceUtils", () => {
       ];
 
       nonFinalStatuses.forEach(status => {
-        expect(InvoiceUtils.isInvoiceFinal(status)).toBe(false);
+        expect(invoiceUtils.isInvoiceFinal(status)).toBe(false);
       });
     });
   });
@@ -413,10 +419,10 @@ describe("InvoiceUtils", () => {
         ...invoiceTemplate,
       };
 
-      expect(InvoiceUtils.canCancelInvoice(cancelableInvoice)).toBe(true);
+      expect(invoiceUtils.canCancelInvoice(cancelableInvoice)).toBe(true);
 
       cancelableInvoice.status = InvoiceStatus.FAILED;
-      expect(InvoiceUtils.canCancelInvoice(cancelableInvoice)).toBe(true);
+      expect(invoiceUtils.canCancelInvoice(cancelableInvoice)).toBe(true);
     });
 
     test("should return false for non-cancelable statuses", () => {
@@ -425,7 +431,7 @@ describe("InvoiceUtils", () => {
         status: InvoiceStatus.PAID,
       };
 
-      expect(InvoiceUtils.canCancelInvoice(nonCancelableInvoice)).toBe(false);
+      expect(invoiceUtils.canCancelInvoice(nonCancelableInvoice)).toBe(false);
     });
   });
 
@@ -435,7 +441,7 @@ describe("InvoiceUtils", () => {
         ...invoiceTemplate,
       };
 
-      expect(InvoiceUtils.isInvoiceExpired(invoice)).toBe(false);
+      expect(invoiceUtils.isInvoiceExpired(invoice)).toBe(false);
     });
 
     test("should return true when expired", () => {
@@ -444,7 +450,7 @@ describe("InvoiceUtils", () => {
         expired_at: new Date(Date.now() - 86400000), // 24 hours ago
       };
 
-      expect(InvoiceUtils.isInvoiceExpired(invoice)).toBe(true);
+      expect(invoiceUtils.isInvoiceExpired(invoice)).toBe(true);
     });
 
     test("should return false when not expired", () => {
@@ -453,7 +459,7 @@ describe("InvoiceUtils", () => {
         expired_at: new Date(Date.now() + 86400000), // 24 hours from now
       };
 
-      expect(InvoiceUtils.isInvoiceExpired(invoice)).toBe(false);
+      expect(invoiceUtils.isInvoiceExpired(invoice)).toBe(false);
     });
   });
 
@@ -463,7 +469,7 @@ describe("InvoiceUtils", () => {
         ...invoiceTemplate,
       };
 
-      expect(InvoiceUtils.getTimeUntilExpiry(invoice)).toBeNull();
+      expect(invoiceUtils.getTimeUntilExpiry(invoice)).toBeNull();
     });
 
     test("should return 0 when expired", () => {
@@ -472,7 +478,7 @@ describe("InvoiceUtils", () => {
         expired_at: new Date(Date.now() - 86400000),
       };
 
-      expect(InvoiceUtils.getTimeUntilExpiry(invoice)).toBe(0);
+      expect(invoiceUtils.getTimeUntilExpiry(invoice)).toBe(0);
     });
 
     test("should return positive number when not expired", () => {
@@ -482,7 +488,7 @@ describe("InvoiceUtils", () => {
         expired_at: new Date(futureTime),
       };
 
-      const timeUntilExpiry = InvoiceUtils.getTimeUntilExpiry(invoice);
+      const timeUntilExpiry = invoiceUtils.getTimeUntilExpiry(invoice);
       expect(timeUntilExpiry).toBeGreaterThan(0);
       expect(timeUntilExpiry).toBeLessThanOrEqual(86400000);
     });
@@ -532,7 +538,7 @@ describe("InvoiceUtils", () => {
         ],
       };
 
-      const summary = InvoiceUtils.getPaymentSummary(detailedInvoice);
+      const summary = invoiceUtils.getPaymentSummary(detailedInvoice);
 
       expect(summary.total).toBe(4);
       expect(summary.paid).toBe(2);
@@ -549,7 +555,7 @@ describe("InvoiceUtils", () => {
         payments: [],
       };
 
-      const summary = InvoiceUtils.getPaymentSummary(detailedInvoice);
+      const summary = invoiceUtils.getPaymentSummary(detailedInvoice);
 
       expect(summary.total).toBe(0);
       expect(summary.paid).toBe(0);
@@ -569,7 +575,7 @@ describe("InvoiceUtils", () => {
         campaign: "summer2023",
       };
 
-      const query = InvoiceUtils.buildMetadataQuery(metadata);
+      const query = invoiceUtils.buildMetadataQuery(metadata);
 
       expect(query).toEqual({
         "metadata[orderId]": "12345",
@@ -579,7 +585,7 @@ describe("InvoiceUtils", () => {
     });
 
     test("should handle empty metadata", () => {
-      const query = InvoiceUtils.buildMetadataQuery({});
+      const query = invoiceUtils.buildMetadataQuery({});
       expect(query).toEqual({});
     });
   });
@@ -587,38 +593,38 @@ describe("InvoiceUtils", () => {
   describe("sanitizeDescription", () => {
     test("should trim whitespace", () => {
       const description = "  Test description  ";
-      const sanitized = InvoiceUtils.sanitizeDescription(description);
+      const sanitized = invoiceUtils.sanitizeDescription(description);
       expect(sanitized).toBe("Test description");
     });
 
     test("should truncate to 255 characters", () => {
       const longDescription = "a".repeat(300);
-      const sanitized = InvoiceUtils.sanitizeDescription(longDescription);
+      const sanitized = invoiceUtils.sanitizeDescription(longDescription);
       expect(sanitized).toHaveLength(255);
       expect(sanitized).toBe("a".repeat(255));
     });
 
     test("should handle normal length description", () => {
       const description = "Normal description";
-      const sanitized = InvoiceUtils.sanitizeDescription(description);
+      const sanitized = invoiceUtils.sanitizeDescription(description);
       expect(sanitized).toBe("Normal description");
     });
   });
 
   describe("generateReference", () => {
     test("should generate reference with default prefix", () => {
-      const reference = InvoiceUtils.generateReference();
+      const reference = invoiceUtils.generateReference();
       expect(reference).toMatch(/^INV-[A-Z0-9]+-[A-Z0-9]+$/);
     });
 
     test("should generate reference with custom prefix", () => {
-      const reference = InvoiceUtils.generateReference("ORDER");
+      const reference = invoiceUtils.generateReference("ORDER");
       expect(reference).toMatch(/^ORDER-[A-Z0-9]+-[A-Z0-9]+$/);
     });
 
     test("should generate unique references", () => {
-      const ref1 = InvoiceUtils.generateReference();
-      const ref2 = InvoiceUtils.generateReference();
+      const ref1 = invoiceUtils.generateReference();
+      const ref2 = invoiceUtils.generateReference();
       expect(ref1).not.toBe(ref2);
     });
   });
@@ -631,7 +637,7 @@ describe("InvoiceUtils", () => {
         description: "Test",
       };
 
-      const result = InvoiceUtils.parseCreateInvoiceRequest(unknownInput);
+      const result = invoiceUtils.parseCreateInvoiceRequest(unknownInput);
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
@@ -645,7 +651,7 @@ describe("InvoiceUtils", () => {
         description: "Test",
       };
 
-      const result = InvoiceUtils.parseCreateInvoiceRequest(unknownInput);
+      const result = invoiceUtils.parseCreateInvoiceRequest(unknownInput);
 
       expect(result.success).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
@@ -669,7 +675,7 @@ describe("InvoiceUtils", () => {
         ],
       };
 
-      const result = InvoiceUtils.parseBulkCreateRequest(unknownInput);
+      const result = invoiceUtils.parseBulkCreateRequest(unknownInput);
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
@@ -681,7 +687,7 @@ describe("InvoiceUtils", () => {
         invoices: "not an array",
       };
 
-      const result = InvoiceUtils.parseBulkCreateRequest(unknownInput);
+      const result = invoiceUtils.parseBulkCreateRequest(unknownInput);
 
       expect(result.success).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
@@ -691,11 +697,11 @@ describe("InvoiceUtils", () => {
   describe("Edge cases and error handling", () => {
     test("should handle null/undefined inputs gracefully", () => {
       expect(() => {
-        InvoiceUtils.validateCreateInvoiceRequest(null as any);
+        invoiceUtils.validateCreateInvoiceRequest(null as any);
       }).not.toThrow();
 
       expect(() => {
-        InvoiceUtils.validateBulkCreateRequest(undefined as any);
+        invoiceUtils.validateBulkCreateRequest(undefined as any);
       }).not.toThrow();
     });
 
@@ -706,7 +712,7 @@ describe("InvoiceUtils", () => {
         description: null,
       };
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(
+      const result = invoiceUtils.validateCreateInvoiceRequest(
         malformedRequest as any
       );
       expect(result.success).toBe(false);
@@ -720,7 +726,7 @@ describe("InvoiceUtils", () => {
         description: "Large amount test",
       };
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(request as any);
+      const result = invoiceUtils.validateCreateInvoiceRequest(request as any);
       expect(result.success).toBe(true);
     });
 
@@ -731,7 +737,7 @@ describe("InvoiceUtils", () => {
         description: "Test with émojis 🎉 and spëcial chars & symbols!",
       };
 
-      const result = InvoiceUtils.validateCreateInvoiceRequest(request as any);
+      const result = invoiceUtils.validateCreateInvoiceRequest(request as any);
       expect(result.success).toBe(true);
       expect(result.data?.description).toBe(
         "Test with émojis 🎉 and spëcial chars & symbols!"

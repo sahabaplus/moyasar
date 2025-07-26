@@ -11,21 +11,32 @@ import {
   invoiceSchema,
 } from "./validation/schemas";
 import { PaymentStatus } from "@payment";
-import type { ValidationResult, Amount, CurrencyType } from "@types";
+import type { ValidationResult, Amount, CurrencyType, Metadata } from "@types";
+import type { MetadataValidator } from "@types";
 
-export class InvoiceUtils {
+type InvoiceUtilsParams<T extends object> = {
+  metadataValidator: MetadataValidator<T>;
+};
+
+export class InvoiceUtils<T extends object> {
+  private readonly metadataDeserializer: MetadataValidator<T>;
+
+  constructor(p: InvoiceUtilsParams<T>) {
+    this.metadataDeserializer = p.metadataValidator;
+  }
+
   /**
    * Validate single invoice creation request using Zod
    */
-  static validateCreateInvoiceRequest(
-    request: CreateInvoiceRequest
-  ): ValidationResult<CreateInvoiceRequest> {
+  validateCreateInvoiceRequest(
+    request: CreateInvoiceRequest<T>
+  ): ValidationResult<CreateInvoiceRequest<T>> {
     const result = CreateInvoiceSchema.safeParse(request);
 
     if (result.success) {
       return {
         success: true,
-        data: result.data as CreateInvoiceRequest,
+        data: result.data as CreateInvoiceRequest<T>,
         errors: [],
       };
     }
@@ -44,15 +55,15 @@ export class InvoiceUtils {
   /**
    * Validate bulk invoice creation request using Zod
    */
-  static validateBulkCreateRequest(
-    request: BulkCreateInvoiceRequest
-  ): ValidationResult<BulkCreateInvoiceRequest> {
+  validateBulkCreateRequest(
+    request: BulkCreateInvoiceRequest<T>
+  ): ValidationResult<BulkCreateInvoiceRequest<T>> {
     const result = BulkCreateInvoiceSchema.safeParse(request);
 
     if (result.success) {
       return {
         success: true,
-        data: result.data as BulkCreateInvoiceRequest,
+        data: result.data as BulkCreateInvoiceRequest<T>,
         errors: [],
       };
     }
@@ -87,7 +98,7 @@ export class InvoiceUtils {
   /**
    * Convert amount to display format
    */
-  static formatAmount(
+  formatAmount(
     amount: Amount,
     currency: CurrencyType
   ): `${number} ${CurrencyType}` {
@@ -110,7 +121,7 @@ export class InvoiceUtils {
   /**
    * Parse amount from display format to smallest unit
    */
-  static parseAmount(formattedAmount: string, currency: CurrencyType): number {
+  parseAmount(formattedAmount: string, currency: CurrencyType): number {
     const divisors: Record<string, number> = {
       KWD: 1000,
       JPY: 1,
@@ -128,7 +139,7 @@ export class InvoiceUtils {
   /**
    * Check if invoice is in a final state
    */
-  static isInvoiceFinal(status: InvoiceStatus): boolean {
+  isInvoiceFinal(status: InvoiceStatus): boolean {
     const finalStatuses: InvoiceStatus[] = [
       InvoiceStatus.PAID,
       InvoiceStatus.CANCELED,
@@ -141,7 +152,7 @@ export class InvoiceUtils {
   /**
    * Check if invoice can be canceled
    */
-  static canCancelInvoice(invoice: Invoice): boolean {
+  canCancelInvoice(invoice: Invoice): boolean {
     const cancelableStatuses: InvoiceStatus[] = [
       InvoiceStatus.INITIATED,
       InvoiceStatus.FAILED,
@@ -152,7 +163,7 @@ export class InvoiceUtils {
   /**
    * Check if invoice is expired
    */
-  static isInvoiceExpired(invoice: Invoice): boolean {
+  isInvoiceExpired(invoice: Invoice): boolean {
     if (!invoice.expired_at) {
       return false;
     }
@@ -163,7 +174,7 @@ export class InvoiceUtils {
   /**
    * Get time until expiry
    */
-  static getTimeUntilExpiry(invoice: Invoice): number | null {
+  getTimeUntilExpiry(invoice: Invoice): number | null {
     if (!invoice.expired_at) {
       return null;
     }
@@ -177,7 +188,7 @@ export class InvoiceUtils {
   /**
    * Get payment summary for an invoice
    */
-  static getPaymentSummary(invoice: DetailedInvoice) {
+  getPaymentSummary(invoice: DetailedInvoice<T>) {
     const payments = invoice.payments;
 
     return {
@@ -197,10 +208,8 @@ export class InvoiceUtils {
   /**
    * Build metadata query parameters for filtering
    */
-  static buildMetadataQuery(
-    metadata: Record<string, string>
-  ): Record<string, string> {
-    const query: Record<string, string> = {};
+  buildMetadataQuery(metadata: T): Record<`metadata[${string}]`, string> {
+    const query: Record<`metadata[${string}]`, string> = {};
 
     Object.entries(metadata).forEach(([key, value]) => {
       query[`metadata[${key}]`] = value;
@@ -212,14 +221,14 @@ export class InvoiceUtils {
   /**
    * Sanitize invoice description
    */
-  static sanitizeDescription(description: string): string {
+  sanitizeDescription(description: string): string {
     return description.trim().substring(0, 255);
   }
 
   /**
    * Generate invoice reference number
    */
-  static generateReference(prefix: string = "INV"): string {
+  generateReference(prefix: string = "INV"): string {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substring(2, 8);
     return `${prefix}-${timestamp}-${random}`.toUpperCase();
@@ -228,22 +237,34 @@ export class InvoiceUtils {
   /**
    * Parse and validate a CreateInvoiceRequest, returning sanitized data
    */
-  static parseCreateInvoiceRequest(
+  parseCreateInvoiceRequest(
     request: unknown
-  ): ValidationResult<CreateInvoiceRequest> {
-    return this.validateCreateInvoiceRequest(request as CreateInvoiceRequest);
+  ): ValidationResult<CreateInvoiceRequest<T>> {
+    return this.validateCreateInvoiceRequest(
+      request as CreateInvoiceRequest<T>
+    );
   }
 
   /**
    * Parse and validate a BulkCreateInvoiceRequest, returning sanitized data
    */
-  static parseBulkCreateRequest(
+  parseBulkCreateRequest(
     request: unknown
-  ): ValidationResult<BulkCreateInvoiceRequest> {
-    return this.validateBulkCreateRequest(request as BulkCreateInvoiceRequest);
+  ): ValidationResult<BulkCreateInvoiceRequest<T>> {
+    return this.validateBulkCreateRequest(
+      request as BulkCreateInvoiceRequest<T>
+    );
   }
 
-  static parseInvoice(invoice: unknown): Invoice {
-    return invoiceSchema.parse(invoice);
+  parseInvoice(invoice: unknown): Invoice<T> {
+    const parsed = invoiceSchema.parse(invoice);
+    const metadata = parsed.metadata
+      ? this.metadataDeserializer.parse(parsed.metadata)
+      : undefined;
+
+    return {
+      ...parsed,
+      metadata,
+    };
   }
 }
