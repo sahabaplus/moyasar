@@ -1,6 +1,6 @@
 {
   "name": "@sahabaplus/moyasar",
-  "version": "0.1.4-beta.4",
+  "version": "0.1.5-beta.4",
   "description": "A comprehensive TypeScript SDK for integrating with the Moyasar payment gateway",
   "author": "SahabaPlus <dev@sahabaplus.com>",
   "license": "MIT",
