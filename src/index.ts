@@ -37,7 +37,7 @@ export {
   type Invoice,
   type DetailedInvoice,
   type InvoiceListOptions,
-  type InvoiceStatus,
+  InvoiceStatus,
   InvoiceUtils,
 } from "@invoice";
 export {
