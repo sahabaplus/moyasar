@@ -52,6 +52,14 @@ export interface Invoice<T extends object = Metadata>
 
 export interface DetailedInvoice<T extends object = Metadata>
   extends Invoice<T> {
+    /**
+     * Payment attempts made against this invoice.
+     * 
+     * @hint Usually, last payment status is `PaymentStatus.PAID` if the invoice status is `InvoiceStatus.PAID`.
+     * Hence, if you want to get the successful payment attempt, you can get it by using the `payments.at(-1)` method.
+     * 
+     * @see https://docs.moyasar.com/api/invoices/04-show-invoice
+     */
   payments: Payment<T>[];
 }
 
