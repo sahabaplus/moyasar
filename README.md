@@ -619,16 +619,6 @@ const payment = await moyasar.payment.create({
 });
 ```
 
-### Supported Currencies
-
-- SAR (Saudi Riyal)
-- KWD (Kuwaiti Dinar)
-- AED (UAE Dirham)
-- USD (US Dollar)
-- EUR (Euro)
-- GBP (British Pound)
-- JPY (Japanese Yen)
-
 ## Testing
 
 ```bash
