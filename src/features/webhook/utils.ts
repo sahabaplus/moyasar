@@ -7,7 +7,7 @@ export class WebhookUtils {
    * Verify webhook payload signature
    */
   static async verifyWebhookSignature(
-    payload: WebhookPayload,
+    payload: { secret_token: string },
     options: { secret_token: string }
   ): Promise<boolean> {
     const { secret_token } = options;
@@ -49,12 +49,19 @@ export class WebhookUtils {
   /**
    * Validate webhook payload
    */
-  static validateWebhookPayload(payload: WebhookPayload): string[] {
+  static validateWebhookPayload(payload: unknown): string[] {
     const errors: string[] = [];
+
+    if (typeof payload !== "object" || payload === null) {
+      errors.push(
+        "Invalid webhook payload, expected an object got " + typeof payload
+      );
+      return errors;
+    }
 
     // Check required fields
     errors.push(
-      ...WebhookValidation.validateRequired(payload, [
+      ...WebhookValidation.validateRequired(payload as Record<string, any>, [
         "id",
         "type",
         "created_at",
@@ -64,12 +71,16 @@ export class WebhookUtils {
     );
 
     // Validate event type
-    if (payload.type && !WebhookValidation.isValidWebhookEvent(payload.type)) {
-      errors.push(`Invalid webhook event type: ${payload.type}`);
+    if (!("type" in payload) || typeof payload.type !== "string") {
+      errors.push(`Invalid webhook event type`);
+    } else if (!WebhookValidation.isValidWebhookEvent(payload.type)) {
+      errors.push(
+        `Invalid webhook event type: ${JSON.stringify(payload.type)}`
+      );
     }
 
     // Validate live mode
-    if (typeof payload.live !== "boolean") {
+    if (!("live" in payload) || typeof payload.live !== "boolean") {
       errors.push("live field must be a boolean");
     }
 

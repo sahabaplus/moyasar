@@ -19,6 +19,7 @@ import type {
   WebhookEventMap,
 } from "./types";
 import { TypedEmitter } from "tiny-typed-emitter";
+import { PaymentUtils } from "@payment";
 
 type WebhookServiceParams<T extends MoyasarClientTypes> = {
   apiClient: ApiClient<T>;
@@ -29,9 +30,13 @@ export class WebhookService<T extends MoyasarClientTypes> extends TypedEmitter<
 > {
   private readonly apiClient: ApiClient<T>;
   private readonly events = Object.values(WebhookEvent) as WebhookEvent[];
+  private readonly paymentUtils: PaymentUtils<T["metadata"]>;
   constructor(params: WebhookServiceParams<T>) {
     super();
     this.apiClient = params.apiClient;
+    this.paymentUtils = new PaymentUtils({
+      metadataValidator: params.apiClient.metadataValidator,
+    });
   }
 
   /**
@@ -219,7 +224,7 @@ export class WebhookService<T extends MoyasarClientTypes> extends TypedEmitter<
    * This method should be called from your webhook endpoint
    */
   async processWebhook(
-    rawPayload: string | Buffer | WebhookPayload<Metadata>,
+    rawPayload: string | Buffer | WebhookPayload<T["metadata"]>,
     options: WebhookVerificationOptions
   ): Promise<WebhookPayload<T["metadata"]>> {
     try {
@@ -248,12 +253,10 @@ export class WebhookService<T extends MoyasarClientTypes> extends TypedEmitter<
         throw new WebhookError("Webhook signature verification failed");
 
       try {
-        const parsedPayloadData = this.apiClient.metadataValidator.parse(
-          payload.data
-        );
+        const parsedPayment = this.paymentUtils.parsePayment(payload.data);
         const parsedPayload = {
           ...payload,
-          data: parsedPayloadData,
+          data: parsedPayment,
         };
 
         this.emit(payload.type, parsedPayload);

@@ -1,5 +1,6 @@
 import type { BaseListOptions, ListResponse, Metadata } from "@types";
 import { WebhookEvent, WebhookHttpMethod } from "./enums";
+import type { Payment } from "../payment";
 
 export interface WebhookPayload<T extends object = Metadata> {
   id: string;
@@ -12,7 +13,7 @@ export interface WebhookPayload<T extends object = Metadata> {
    * The Payment payload associated with the event.
    * @see https://docs.moyasar.com/api/other/webhooks/webhook-reference#the-webhook-object
    */
-  data: T;
+  data: Payment<T>;
 }
 
 export interface Webhook {

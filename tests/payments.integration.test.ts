@@ -29,7 +29,7 @@ describe("Payment Testing", async () => {
         name: "Test User",
         number: "4111111111111111", // Test card number
         month: 12,
-        year: 2025,
+        year: 2030,
         cvc: "123",
         statement_descriptor: "Test Payment",
       },
@@ -177,7 +177,7 @@ describe("Payment Testing", async () => {
         name: "Capabilities Test User",
         number: "4111111111111111",
         month: 12,
-        year: 2025,
+        year: 2030,
         cvc: "123",
       },
       metadata: {

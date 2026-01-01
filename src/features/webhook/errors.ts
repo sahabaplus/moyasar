@@ -16,13 +16,13 @@ export class WebhookVerificationError extends WebhookError {
 }
 
 export class WebhookValidationError extends WebhookError {
-  public readonly unexpected_payload: Partial<WebhookPayload>;
+  public readonly unexpected_payload: unknown;
   constructor({
     message = "Webhook payload validation failed",
     unexpected_payload,
   }: {
     message?: string;
-    unexpected_payload: Partial<WebhookPayload>;
+    unexpected_payload: unknown;
   }) {
     super(message, { unexpected_payload });
     this.unexpected_payload = unexpected_payload;
