@@ -69,6 +69,7 @@ export {
 } from "@payment";
 // Shared types and utilities
 export type { Amount, Metadata, ListResponse, HasAmount } from "@types";
+export { MoyasarError } from "@errors";
 
 // Default export for convenience
 export { MoyasarClient as default } from "./client";

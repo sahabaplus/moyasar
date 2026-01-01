@@ -14,8 +14,7 @@ import type { HasAmount } from "@types";
  * @see https://docs.moyasar.com/category/invoices-api
  */
 export interface Invoice<T extends object = Metadata>
-  extends HasAmount,
-    HasMetadata<T> {
+  extends HasAmount, HasMetadata<T> {
   id: string;
   status: InvoiceStatus;
   currency: CurrencyType;
@@ -50,22 +49,22 @@ export interface Invoice<T extends object = Metadata>
   success_url?: string | undefined;
 }
 
-export interface DetailedInvoice<T extends object = Metadata>
-  extends Invoice<T> {
-    /**
-     * Payment attempts made against this invoice.
-     * 
-     * @hint Usually, last payment status is `PaymentStatus.PAID` if the invoice status is `InvoiceStatus.PAID`.
-     * Hence, if you want to get the successful payment attempt, you can get it by using the `payments.at(-1)` method.
-     * 
-     * @see https://docs.moyasar.com/api/invoices/04-show-invoice
-     */
+export interface DetailedInvoice<
+  T extends object = Metadata,
+> extends Invoice<T> {
+  /**
+   * Payment attempts made against this invoice.
+   *
+   * @hint Usually, last payment status is `PaymentStatus.PAID` if the invoice status is `InvoiceStatus.PAID`.
+   * Hence, if you want to get the successful payment attempt, you can get it by using the `payments.at(-1)` method.
+   *
+   * @see https://docs.moyasar.com/api/invoices/04-show-invoice
+   */
   payments: Payment<T>[];
 }
 
 export interface CreateInvoiceRequest<T extends object = Metadata>
-  extends HasAmount,
-    HasMetadata<T> {
+  extends HasAmount, HasMetadata<T> {
   currency: CurrencyType;
   description: string;
   /**
@@ -93,8 +92,9 @@ export interface CreateInvoiceRequest<T extends object = Metadata>
   expired_at?: Date | undefined;
 }
 
-export interface UpdateInvoiceRequest<T extends object = Metadata>
-  extends HasMetadata<Partial<T>> {}
+export interface UpdateInvoiceRequest<
+  T extends object = Metadata,
+> extends HasMetadata<Partial<T>> {}
 
 export interface BulkCreateInvoiceRequest<T extends object = Metadata> {
   /**
@@ -105,16 +105,16 @@ export interface BulkCreateInvoiceRequest<T extends object = Metadata> {
 }
 
 export interface InvoiceListOptions<T extends object = Metadata>
-  extends BaseListOptions,
-    HasMetadata<T> {
+  extends BaseListOptions, HasMetadata<Partial<T>> {
   id?: string | undefined;
   status?: InvoiceStatus | undefined;
   "created[gt]"?: Date | undefined;
   "created[lt]"?: Date | undefined;
 }
 
-export interface ListInvoicesResponse<T extends object = Metadata>
-  extends ListResponse<Invoice<T>> {
+export interface ListInvoicesResponse<
+  T extends object = Metadata,
+> extends ListResponse<Invoice<T>> {
   invoices: Invoice<T>[];
 }
 

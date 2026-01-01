@@ -82,8 +82,7 @@ export type PaymentSourceUnion =
   | StcPaySource;
 
 export interface Payment<T extends object = Metadata>
-  extends HasAmount,
-    HasMetadata<T> {
+  extends HasAmount, HasMetadata<T> {
   /**
    * @description uuid
    * @note if you have set the given_id when creating the payment, it will be returned here.
@@ -135,8 +134,7 @@ export interface Payment<T extends object = Metadata>
 }
 
 export interface PaymentListOptions<T extends object = Metadata>
-  extends BaseListOptions,
-    HasMetadata<T> {
+  extends BaseListOptions, HasMetadata<Partial<T>> {
   id?: string | undefined;
   status?: PaymentStatus | undefined;
   "created[gt]"?: Date | undefined;
@@ -147,7 +145,8 @@ export interface PaymentListOptions<T extends object = Metadata>
   rrn?: string; // Filter by RR | undefinedN
 }
 
-export interface ListPaymentsResponse<T extends object = Metadata>
-  extends ListResponse<Payment<T>> {
+export interface ListPaymentsResponse<
+  T extends object = Metadata,
+> extends ListResponse<Payment<T>> {
   payments: Payment<T>[];
 }
